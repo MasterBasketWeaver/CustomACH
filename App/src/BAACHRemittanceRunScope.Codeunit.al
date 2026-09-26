@@ -161,6 +161,7 @@ codeunit 81104 "BAACH Remittance Run Scope"
     var
         TempReportParametersBuffer: Record "Name/Value Buffer" temporary;
         TempBlob: Codeunit "Temp Blob";
+        TypeHelper: Codeunit "Type Helper";
         ParametersInStream: InStream;
         Parameters: Text;
         ChosenBankAccountNo: Text;
@@ -174,7 +175,7 @@ codeunit 81104 "BAACH Remittance Run Scope"
                     if TempBlobList.Exists(Index) then begin
                         TempBlobList.Get(Index, TempBlob);
                         TempBlob.CreateInStream(ParametersInStream, TextEncoding::UTF8);
-                        ParametersInStream.ReadText(Parameters);
+                        Parameters := TypeHelper.ReadAsTextWithSeparator(ParametersInStream, TypeHelper.LFSeparator());
                         if GetBankOption(Parameters, ChosenBankAccountNo) then
                             if UpperCase(ChosenBankAccountNo) <> BatchBankAccountNo then
                                 Error(RequestPageBankErr, TempReportParametersBuffer.ID, GetReportCaption(TempReportParametersBuffer.ID),
