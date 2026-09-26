@@ -1,0 +1,41 @@
+{
+  "id": "0a54e03a-264b-42de-905a-ff0d63372e46",
+  "name": "Custom ACH Tests",
+  "publisher": "BryanA BC Developments Inc.",
+  "version": "28.0.1.0",
+  "brief": "Automated tests for Custom ACH.",
+  "description": "Test application for Custom ACH: test codeunits, a test runner and a SOAP-callable suite runner. Self-contained; it does not depend on the Microsoft test libraries. Never install in production.",
+  "privacyStatement": "",
+  "EULA": "",
+  "help": "",
+  "url": "",
+  "logo": "",
+  "dependencies": [
+    {
+      "id": "a42f1852-a8b3-4587-b855-e470f4431838",
+      "name": "Custom ACH",
+      "publisher": "BryanA BC Developments Inc.",
+      "version": "28.0.1.0"
+    }
+  ],
+  "screenshots": [],
+  "platform": "28.0.0.0",
+  "application": "28.0.0.0",
+  "idRanges": [
+    {
+      "from": 81200,
+      "to": 81299
+    }
+  ],
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": true,
+    "includeSourceInSymbolFile": true,
+    "applyToDevExtension": true
+  },
+  "runtime": "17.0",
+  "target": "Cloud",
+  "features": [
+    "NoImplicitWith"
+  ]
+}

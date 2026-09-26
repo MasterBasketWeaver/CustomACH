@@ -1,0 +1,41 @@
+{
+  "id": "a42f1852-a8b3-4587-b855-e470f4431838",
+  "name": "Custom ACH",
+  "publisher": "BryanA BC Developments Inc.",
+  "version": "28.0.1.0",
+  "brief": "Generate the EFT (ACH) file before exporting vendor remittances.",
+  "description": "Reorders the Payment Journal electronic payment process so the EFT (ACH) files are generated before the vendor remittances are exported. Enabled per company by 'Enable EFT Generate before Export' on Purchases & Payables Setup; when it is off, standard Business Central behaviour applies.",
+  "privacyStatement": "",
+  "EULA": "",
+  "help": "",
+  "url": "",
+  "logo": "./Logo/BryanALogo.jpg",
+  "dependencies": [],
+  "screenshots": [],
+  "platform": "28.0.0.0",
+  "application": "28.0.0.0",
+  "idRanges": [
+    {
+      "from": 81100,
+      "to": 81199
+    }
+  ],
+  "internalsVisibleTo": [
+    {
+      "id": "0a54e03a-264b-42de-905a-ff0d63372e46",
+      "name": "Custom ACH Tests",
+      "publisher": "BryanA BC Developments Inc."
+    }
+  ],
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": true,
+    "includeSourceInSymbolFile": true,
+    "applyToDevExtension": true
+  },
+  "runtime": "17.0",
+  "target": "Cloud",
+  "features": [
+    "NoImplicitWith"
+  ]
+}

@@ -1,0 +1,16 @@
+# AL build output and caches
+*.app
+*.g.xlf
+rad.json
+output/
+.alcache/
+.alpackages/
+.altemplates/
+.snapshots/
+.netpackages/
+permissionsAnalyzer.json
+*.flf
+
+# Credentials and token caches never belong in this repo
+credentials
+bc_token_cache.bin
