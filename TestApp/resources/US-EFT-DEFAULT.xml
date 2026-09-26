@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<root>
+  <DataExchDef Code="US EFT DEFAULT" Name="US EFT Default Format" Type="10000" ExternalDataHandlingCodeunit="10323" FileType="1" ReadingWritingCodeunit="10322" ValidationCodeunit="10321" UserFeedbackCodeunit="10324">
+    <DataExchLineDef LineType="1" Code="ACHUSHEADER" Name="ACH US Header" ColumnCount="2">
+      <DataExchColumnDef ColumnNo="1" Name="File Record Type" Show="false" DataType="2" Length="1" TextPaddingRequired="false" Justification="0" />
+      <DataExchColumnDef ColumnNo="2" Name="Priority Code" Show="false" DataType="2" Length="2" TextPaddingRequired="true" PadCharacter="0" Justification="0" />
+      <DataExchMapping TableId="10300" Name="ACH US Header" MappingCodeunit="10326" PreMappingCodeunit="10325">
+        <DataExchFieldMapping ColumnNo="1" FieldID="6" />
+        <DataExchFieldMapping ColumnNo="2" FieldID="1" />
+      </DataExchMapping>
+    </DataExchLineDef>
+    <DataExchLineDef LineType="0" Code="ACHUSDETAIL" Name="ACH US Detail" ColumnCount="2">
+      <DataExchColumnDef ColumnNo="1" Name="Record Type" Show="false" DataType="2" Length="1" TextPaddingRequired="false" Justification="0" />
+      <DataExchColumnDef ColumnNo="2" Name="Transaction Code" Show="false" DataType="2" Length="2" TextPaddingRequired="false" Justification="0" />
+      <DataExchMapping TableId="10301" Name="ACH US Detail" MappingCodeunit="10328" PreMappingCodeunit="10327">
+        <DataExchFieldMapping ColumnNo="1" FieldID="11" />
+        <DataExchFieldMapping ColumnNo="2" FieldID="2" />
+      </DataExchMapping>
+    </DataExchLineDef>
+    <DataExchLineDef LineType="2" Code="ACHUSFOOTER" Name="ACH US Footer" ColumnCount="1">
+      <DataExchColumnDef ColumnNo="1" Name="Batch Record Type" Show="false" DataType="2" Length="1" TextPaddingRequired="false" Justification="0" />
+      <DataExchMapping TableId="10302" Name="ACH US Footer" MappingCodeunit="10330" PreMappingCodeunit="10329">
+        <DataExchFieldMapping ColumnNo="1" FieldID="21" />
+      </DataExchMapping>
+    </DataExchLineDef>
+  </DataExchDef>
+</root>

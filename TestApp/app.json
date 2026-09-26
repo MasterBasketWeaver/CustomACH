@@ -33,6 +33,9 @@
     "includeSourceInSymbolFile": true,
     "applyToDevExtension": true
   },
+  "resourceFolders": [
+    "resources"
+  ],
   "runtime": "17.0",
   "target": "Cloud",
   "features": [
