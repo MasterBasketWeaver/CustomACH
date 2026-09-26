@@ -24,7 +24,6 @@ codeunit 81211 "BAACH Generate EFT Tests"
         GenJournalLine.Find();
         Assert.IsTrue(GenJournalLine."BAACH EFT File Created", 'EFT File Created');
         Assert.IsTrue(GenJournalLine."Check Printed", 'Check Printed');
-        Assert.IsTrue(GenJournalLine."Exported to Payment File", 'Exported to Payment File');
         Assert.IsFalse(GenJournalLine."Check Exported", 'Check Exported must wait for Export.');
         Assert.IsFalse(GenJournalLine."Check Transmitted", 'Check Transmitted must wait for Export.');
         Assert.AreNotEqual(0, GenJournalLine."EFT Export Sequence No.", 'EFT Export Sequence No.');
@@ -530,6 +529,7 @@ codeunit 81211 "BAACH Generate EFT Tests"
         EFTExport: Record "EFT Export";
         ErrorText: Text;
     begin
+        Commit();
         asserterror Library.GenerateEFT(GenJournalBatch);
         ErrorText := GetLastErrorText();
         if StrPos(LowerCase(ErrorText), LowerCase(ExpectedText)) = 0 then

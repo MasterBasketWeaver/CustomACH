@@ -22,6 +22,7 @@ codeunit 81213 "BAACH Export Remittance Tests"
         Library.CreateEFTScenario(BankAccount, GenJournalBatch);
         Library.CreateVendorPayment(GenJournalLine, GenJournalBatch, 100, true);
 
+        Commit();
         asserterror ExportRemittance.ExportForBatch(GenJournalBatch."Journal Template Name", GenJournalBatch.Name);
         Assert.ExpectedErrorContains('EFT');
 
@@ -43,6 +44,7 @@ codeunit 81213 "BAACH Export Remittance Tests"
         Library.GenerateEFT(GenJournalBatch);
         Library.RemoveVendorRemittanceSelections();
 
+        Commit();
         asserterror ExportRemittance.ExportForBatch(GenJournalBatch."Journal Template Name", GenJournalBatch.Name);
         Assert.ExpectedErrorContains('Vendor Remittance report');
 
@@ -63,6 +65,7 @@ codeunit 81213 "BAACH Export Remittance Tests"
         Library.GenerateEFT(GenJournalBatch);
         Library.MarkBatchExported(GenJournalBatch, Library.PDFOutput());
 
+        Commit();
         asserterror ExportRemittance.ExportForBatch(GenJournalBatch."Journal Template Name", GenJournalBatch.Name);
     end;
 
@@ -169,6 +172,7 @@ codeunit 81213 "BAACH Export Remittance Tests"
         Library.GenerateEFT(GenJournalBatch);
         ExportWithFailedEmail(GenJournalBatch, FailedVendor."No.");
 
+        Commit();
         asserterror Library.PostBatch(GenJournalBatch);
         Assert.ExpectedErrorContains(GenJournalLine.FieldCaption("Check Transmitted"));
     end;

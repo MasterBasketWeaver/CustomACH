@@ -19,6 +19,7 @@ codeunit 81212 "BAACH Line Lock Tests"
         OriginalDescription := GenJournalLine.Description;
 
         GenJournalLine.Description := 'Changed after Generate';
+        Commit();
         asserterror GenJournalLine.Modify(true);
         VerifyGuardMessage(GenJournalLine);
 
@@ -33,6 +34,7 @@ codeunit 81212 "BAACH Line Lock Tests"
     begin
         CreateGeneratedLine(GenJournalLine);
 
+        Commit();
         asserterror GenJournalLine.Delete(true);
         VerifyGuardMessage(GenJournalLine);
 
@@ -43,13 +45,17 @@ codeunit 81212 "BAACH Line Lock Tests"
     procedure RenameIsRefusedAfterGenerate()
     var
         GenJournalLine: Record "Gen. Journal Line";
+        StoredLine: Record "Gen. Journal Line";
     begin
         CreateGeneratedLine(GenJournalLine);
+        StoredLine := GenJournalLine;
 
+        Commit();
         asserterror GenJournalLine.Rename(GenJournalLine."Journal Template Name", GenJournalLine."Journal Batch Name", GenJournalLine."Line No." + 1);
-        VerifyGuardMessage(GenJournalLine);
+        VerifyGuardMessage(StoredLine);
 
-        Assert.IsTrue(GenJournalLine.Find(), 'The line must keep its key.');
+        // A failed Rename still leaves the new key on the in-memory record.
+        Assert.IsTrue(StoredLine.Find(), 'The line must keep its key.');
     end;
 
     [Test]
@@ -98,9 +104,11 @@ codeunit 81212 "BAACH Line Lock Tests"
         GenJournalLine.Modify(false);
 
         GenJournalLine.Description := 'Changed with the flag set';
+        Commit();
         asserterror GenJournalLine.Modify(true);
 
         GenJournalLine.Find();
+        Commit();
         asserterror GenJournalLine.Delete(true);
         Assert.IsTrue(GenJournalLine.Find(), 'The line must still exist.');
     end;

@@ -70,6 +70,7 @@ codeunit 81210 "BAACH Setup Tests"
         DocumentNo := GenJournalLine."Document No.";
         Library.SetSwitch(false);
 
+        Commit();
         asserterror Library.GenerateEFT(GenJournalBatch);
 
         GenJournalLine.Find();
@@ -93,6 +94,7 @@ codeunit 81210 "BAACH Setup Tests"
         Library.GenerateEFT(GenJournalBatch);
         Library.SetSwitch(false);
 
+        Commit();
         asserterror ExportRemittance.ExportForBatch(GenJournalBatch."Journal Template Name", GenJournalBatch.Name);
 
         GenJournalLine.Find();
@@ -113,6 +115,7 @@ codeunit 81210 "BAACH Setup Tests"
         Library.GenerateEFT(GenJournalBatch);
         Library.SetSwitch(false);
 
+        Commit();
         asserterror VoidEFT.VoidForBatch(GenJournalBatch."Journal Template Name", GenJournalBatch.Name);
 
         GenJournalLine.Find();
@@ -150,10 +153,12 @@ codeunit 81210 "BAACH Setup Tests"
         Library.CreateEFTScenario(BankAccount, GenJournalBatch);
         Library.CreateVendorPayment(GenJournalLine, GenJournalBatch, 100, true);
 
+        Commit();
         asserterror Codeunit.Run(Codeunit::"Gen. Jnl.-Check Line", GenJournalLine);
         Assert.ExpectedErrorContains(GenJournalLine.FieldCaption("Check Exported"));
 
         Library.SetSwitch(false);
+        Commit();
         asserterror Codeunit.Run(Codeunit::"Gen. Jnl.-Check Line", GenJournalLine);
         Assert.ExpectedErrorContains(GenJournalLine.FieldCaption("Check Exported"));
     end;
@@ -171,6 +176,7 @@ codeunit 81210 "BAACH Setup Tests"
         Library.GenerateEFT(GenJournalBatch);
 
         PurchasesPayablesSetup.Get();
+        Commit();
         asserterror PurchasesPayablesSetup.Validate("BAACH Enable EFT Before Export", false);
         Assert.ExpectedErrorContains(GenJournalBatch.Name);
     end;
@@ -186,6 +192,7 @@ codeunit 81210 "BAACH Setup Tests"
         Library.CreateVendorPayment(GenJournalLine, GenJournalBatch, 100, true);
         Library.GenerateEFT(GenJournalBatch);
 
+        Commit();
         asserterror SetupMgt.CheckNoLinesInProgress();
         Assert.ExpectedErrorContains(GenJournalBatch.Name);
     end;

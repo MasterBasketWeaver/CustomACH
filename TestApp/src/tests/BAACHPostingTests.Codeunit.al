@@ -19,6 +19,7 @@ codeunit 81215 "BAACH Posting Tests"
         Library.CreateVendorPayment(GenJournalLine, GenJournalBatch, 100, true);
         Library.GenerateEFT(GenJournalBatch);
 
+        Commit();
         asserterror Library.PostBatch(GenJournalBatch);
         Assert.ExpectedErrorContains(GenJournalLine.FieldCaption("Check Exported"));
 
@@ -46,7 +47,9 @@ codeunit 81215 "BAACH Posting Tests"
 
         Library.PostBatch(GenJournalBatch);
 
+        // Post Batch leaves a new blank line 10000 behind when the batch has no No. Series.
         Library.FilterBatchLines(GenJournalLine, GenJournalBatch);
+        GenJournalLine.SetFilter("Account No.", '<>%1', '');
         Assert.RecordIsEmpty(GenJournalLine);
         VerifyPosted(BankAccount."No.", ByIDLine, ByIDInvoiceNo);
         VerifyPosted(BankAccount."No.", ByDocNoLine, ByDocNoInvoiceNo);

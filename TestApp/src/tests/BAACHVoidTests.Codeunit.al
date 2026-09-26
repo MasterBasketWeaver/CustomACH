@@ -103,6 +103,7 @@ codeunit 81216 "BAACH Void Tests"
         Library.GenerateEFT(GenJournalBatch);
         Library.MarkBatchExported(GenJournalBatch, Library.PDFOutput());
 
+        Commit();
         asserterror VoidEFT.VoidForBatch(GenJournalBatch."Journal Template Name", GenJournalBatch.Name);
 
         VerifyStillExported(BankAccount."No.", GenJournalLine);
@@ -124,6 +125,7 @@ codeunit 81216 "BAACH Void Tests"
         RemittanceRunScope.MarkLinesExported(CustomLayoutReporting.GetEmailOption());
         RemittanceRunScope.MarkVendorEmailFailed(GenJournalLine."Account No.");
 
+        Commit();
         asserterror VoidEFT.VoidForBatch(GenJournalBatch."Journal Template Name", GenJournalBatch.Name);
 
         VerifyStillExported(BankAccount."No.", GenJournalLine);

@@ -1,5 +1,5 @@
 // Reads the NACHA file that Generate EFT stored in Data Exch. "File Content" and parses its
-// 94-character records. Positions are those of the NACHA standard.
+// 94-character records. Entry detail positions are those of the CTX layout the US EFT definition uses.
 codeunit 81208 "BAACH ACH File"
 {
     var
@@ -125,7 +125,7 @@ codeunit 81208 "BAACH ACH File"
         i: Integer;
     begin
         for i := 1 to EntryCount() do
-            if UpperCase(EntryName(i)) = UpperCase(CopyStr(PayeeName, 1, 22)) then
+            if UpperCase(EntryName(i)) = UpperCase(DelChr(CopyStr(PayeeName, 1, 16), '>', ' ')) then
                 exit(i);
         Error(NoEntryForNameErr, PayeeName);
     end;
@@ -158,7 +158,7 @@ codeunit 81208 "BAACH ACH File"
 
     procedure EntryName(Occurrence: Integer): Text
     begin
-        exit(DelChr(CopyStr(GetRecordOfType('6', Occurrence), 55, 22), '<>', ' '));
+        exit(DelChr(CopyStr(GetRecordOfType('6', Occurrence), 59, 16), '<>', ' '));
     end;
 
     procedure BatchEffectiveDate(): Date
