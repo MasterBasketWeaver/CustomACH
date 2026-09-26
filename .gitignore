@@ -14,3 +14,6 @@ permissionsAnalyzer.json
 # Credentials and token caches never belong in this repo
 credentials
 bc_token_cache.bin
+
+# Claude Code worktrees
+.claude/
