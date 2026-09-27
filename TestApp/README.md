@@ -50,22 +50,28 @@ alc /project:TestApp /packagecachepath:TestApp/.alpackages /out:output/CustomACH
 ## Fixtures
 
 Every test builds its own records under unique codes: a Data Exchange Definition imported from
-`resources/US-EFT-DEFAULT.xml` (renamed to a fresh code on import), a Bank Export/Import Setup
+`resources/TANAGER-AMEGY.xml` (renamed to a fresh code on import), a Bank Export/Import Setup
 (Export-EFT), a US-format bank account, vendors with bank accounts, a payment template and batch, and vendor
 invoices posted through a general journal. Posting groups and a G/L account for the invoices are borrowed
 from what the company already has; `--env` shows which ones.
 
-`resources/US-EFT-DEFAULT.xml` is the company's US EFT definition exported with XMLport 1225. To capture it
-again, call `ExportDataExchDef` (SOAP parameter `code`) with the definition code and save the returned text.
+The resources are EFT definitions exported with XMLport 1225:
+
+| Resource | Source | Layout |
+|---|---|---|
+| `TANAGER-AMEGY.xml` (default) | `TANAGER - AMEGY` in Texas Transportation Group | CCD, 94-character records |
+| `US-EFT-DEFAULT.xml` | `US EFT DEFAULT` in Estacado IOS Fund I, LLC, with the entry detail name cut to 16 | CTX |
+
+To capture a definition, call `ExportDataExchDef` (SOAP parameter `code`) with its code and save the
+returned text; `ImportDataExchDef` copies such a file into the company the service runs in.
 
 Headless limits: a SOAP session cannot show request pages or modal pages, so `ExportForBatch` is only called
 for its guards; the marking rules are tested through `BAACH Remittance Run Scope`, and the remittance reports
 through `Report.SaveAs` with request-parameter XML. Request-page pre-fill, downloads, email output and action
 visibility need a UI run.
 
-To run the fixtures against the `TANAGER - AMEGY` definition (captured from Texas Transportation Group,
-a 94-character CCD layout) instead of the `US EFT DEFAULT` copy:
+To run the fixtures against the `US EFT DEFAULT` copy instead of the default:
 
 ```
-./run_tests.py --def TANAGER-AMEGY.xml
+./run_tests.py --def US-EFT-DEFAULT.xml
 ```

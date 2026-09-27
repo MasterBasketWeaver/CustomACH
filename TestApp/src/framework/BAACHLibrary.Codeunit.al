@@ -4,7 +4,7 @@
 codeunit 81207 "BAACH Library"
 {
     var
-        USEFTResourceTok: Label 'US-EFT-DEFAULT.xml', Locked = true;
+        DefaultDefResourceTok: Label 'TANAGER-AMEGY.xml', Locked = true;
         FederalIdNoTok: Label '123456789', Locked = true;
         BankTransitNoTok: Label '021000021', Locked = true;
         VendorTransitNoTok: Label '011000015', Locked = true;
@@ -113,7 +113,7 @@ codeunit 81207 "BAACH Library"
     begin
         ResourceName := TestResults.GetDataExchDefResource();
         if ResourceName = '' then
-            ResourceName := USEFTResourceTok;
+            ResourceName := DefaultDefResourceTok;
         NavApp.GetResource(ResourceName, ResourceStream, TextEncoding::UTF8);
         XmlDocument.ReadFrom(ResourceStream, XmlDoc);
         if not XmlDoc.SelectSingleNode('/root/DataExchDef', DefNode) then

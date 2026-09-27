@@ -4,7 +4,7 @@ codeunit 81202 "BAACH Run Tests"
     var
         Suite: Codeunit "BAACH Suite";
         TestResults: Codeunit "BAACH Test Results";
-        USEFTResourceTok: Label 'US-EFT-DEFAULT.xml', Locked = true;
+        DefaultDefResourceTok: Label 'TANAGER-AMEGY.xml', Locked = true;
 
     procedure RunAll(): Text
     begin
@@ -121,7 +121,7 @@ codeunit 81202 "BAACH Run Tests"
         Scenario.WriteTo(Result);
     end;
 
-    // Used once to capture TestApp/resources/US-EFT-DEFAULT.xml from a company that has the definition.
+    // Captures a definition as a Test App resource (TestApp/resources/*.xml) from a company that has it.
     procedure ExportDataExchDef("Code": Text) Result: Text
     var
         DataExchDef: Record "Data Exch. Def";
@@ -284,7 +284,7 @@ codeunit 81202 "BAACH Run Tests"
         DefNode: XmlNode;
         CodeAttribute: XmlAttribute;
     begin
-        NavApp.GetResource(USEFTResourceTok, ResourceStream, TextEncoding::UTF8);
+        NavApp.GetResource(DefaultDefResourceTok, ResourceStream, TextEncoding::UTF8);
         if not XmlDocument.ReadFrom(ResourceStream, XmlDoc) then
             exit('<unreadable>');
         if not XmlDoc.SelectSingleNode('/root/DataExchDef', DefNode) then
