@@ -7,10 +7,26 @@ codeunit 81105 "BAACH Void EFT"
 
     procedure VoidForBatch(TemplateName: Code[10]; BatchName: Code[10])
     var
-        GenJournalBatch: Record "Gen. Journal Batch";
-        BankAccount: Record "Bank Account";
         LineNosToVoid: List of [Integer];
         LineNo: Integer;
+    begin
+        CheckCanVoid(TemplateName, BatchName, LineNosToVoid);
+        foreach LineNo in LineNosToVoid do
+            VoidLine(TemplateName, BatchName, LineNo);
+    end;
+
+    // Lets the page refuse before it asks the user to confirm the void.
+    procedure CheckCanVoid(TemplateName: Code[10]; BatchName: Code[10])
+    var
+        LineNosToVoid: List of [Integer];
+    begin
+        CheckCanVoid(TemplateName, BatchName, LineNosToVoid);
+    end;
+
+    local procedure CheckCanVoid(TemplateName: Code[10]; BatchName: Code[10]; var LineNosToVoid: List of [Integer])
+    var
+        GenJournalBatch: Record "Gen. Journal Batch";
+        BankAccount: Record "Bank Account";
     begin
         CheckEnabled(TemplateName, BatchName);
         GenJournalBatch.Get(TemplateName, BatchName);
@@ -23,9 +39,6 @@ codeunit 81105 "BAACH Void EFT"
         FindLinesToVoid(TemplateName, BatchName, LineNosToVoid);
         if LineNosToVoid.Count() = 0 then
             Error(NoEntriesToVoidErr);
-
-        foreach LineNo in LineNosToVoid do
-            VoidLine(TemplateName, BatchName, LineNo);
     end;
 
     local procedure CheckEnabled(TemplateName: Code[10]; BatchName: Code[10])

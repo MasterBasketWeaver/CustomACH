@@ -70,6 +70,7 @@ pageextension 81100 "BAACH Payment Journal" extends "Payment Journal"
                 var
                     VoidEFT: Codeunit "BAACH Void EFT";
                 begin
+                    VoidEFT.CheckCanVoid(GetTemplateName(), CurrentJnlBatchName);
                     if not Confirm(VoidEFTFileQst, false) then
                         exit;
                     VoidEFT.VoidForBatch(GetTemplateName(), CurrentJnlBatchName);

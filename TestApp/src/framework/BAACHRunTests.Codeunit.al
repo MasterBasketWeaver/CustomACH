@@ -60,6 +60,29 @@ codeunit 81202 "BAACH Run Tests"
         Summary.WriteTo(Result);
     end;
 
+    // Commits a payment batch with two applied vendor payments for a web client walkthrough, and leaves the
+    // switch off so the walkthrough starts from standard behaviour. Unlike the tests, nothing is rolled back.
+    procedure CreateUIScenario() Result: Text
+    var
+        BankAccount: Record "Bank Account";
+        GenJournalBatch: Record "Gen. Journal Batch";
+        GenJournalLine: Record "Gen. Journal Line";
+        Library: Codeunit "BAACH Library";
+        Scenario: JsonObject;
+    begin
+        Library.CreateEFTScenario(BankAccount, GenJournalBatch);
+        Library.CreateVendorPayment(GenJournalLine, GenJournalBatch, 1250.75, true);
+        Library.CreateVendorPayment(GenJournalLine, GenJournalBatch, 480.1, false);
+        Library.SetSwitch(false);
+        Commit();
+
+        Scenario.Add('template', GenJournalBatch."Journal Template Name");
+        Scenario.Add('batch', GenJournalBatch.Name);
+        Scenario.Add('bankAccount', BankAccount."No.");
+        Scenario.Add('lastRemittanceAdviceNo', BankAccount."Last Remittance Advice No.");
+        Scenario.WriteTo(Result);
+    end;
+
     // Used once to capture TestApp/resources/US-EFT-DEFAULT.xml from a company that has the definition.
     procedure ExportDataExchDef("Code": Text) Result: Text
     var
