@@ -1,5 +1,6 @@
 // Reads the NACHA file that Generate EFT stored in Data Exch. "File Content" and parses its
-// 94-character records. Entry detail positions are those of the CTX layout the US EFT definition uses.
+// 94-character records. The entry detail name sits where the batch's entry class puts it: CTX (the
+// US EFT DEFAULT copy) or CCD/PPD (TANAGER - AMEGY).
 codeunit 81208 "BAACH ACH File"
 {
     var
@@ -125,7 +126,7 @@ codeunit 81208 "BAACH ACH File"
         i: Integer;
     begin
         for i := 1 to EntryCount() do
-            if UpperCase(EntryName(i)) = UpperCase(DelChr(CopyStr(PayeeName, 1, 16), '>', ' ')) then
+            if UpperCase(EntryName(i)) = UpperCase(DelChr(CopyStr(PayeeName, 1, EntryNameLength()), '>', ' ')) then
                 exit(i);
         Error(NoEntryForNameErr, PayeeName);
     end;
@@ -158,7 +159,26 @@ codeunit 81208 "BAACH ACH File"
 
     procedure EntryName(Occurrence: Integer): Text
     begin
-        exit(DelChr(CopyStr(GetRecordOfType('6', Occurrence), 59, 16), '<>', ' '));
+        if IsCTX() then
+            exit(DelChr(CopyStr(GetRecordOfType('6', Occurrence), 59, 16), '<>', ' '));
+        exit(DelChr(CopyStr(GetRecordOfType('6', Occurrence), 55, 22), '<>', ' '));
+    end;
+
+    procedure EntryClassCode(): Text
+    begin
+        exit(CopyStr(GetRecordOfType('5', 1), 51, 3));
+    end;
+
+    local procedure IsCTX(): Boolean
+    begin
+        exit(EntryClassCode() = 'CTX');
+    end;
+
+    local procedure EntryNameLength(): Integer
+    begin
+        if IsCTX() then
+            exit(16);
+        exit(22);
     end;
 
     procedure BatchEffectiveDate(): Date

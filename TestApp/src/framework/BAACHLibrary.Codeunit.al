@@ -101,6 +101,8 @@ codeunit 81207 "BAACH Library"
     procedure ImportUSEFTDataExchDef(): Code[20]
     var
         DataExchDef: Record "Data Exch. Def";
+        TestResults: Codeunit "BAACH Test Results";
+        ResourceName: Text;
         TempBlob: Codeunit "Temp Blob";
         ResourceStream: InStream;
         ImportStream: InStream;
@@ -109,10 +111,13 @@ codeunit 81207 "BAACH Library"
         DefNode: XmlNode;
         NewCode: Code[20];
     begin
-        NavApp.GetResource(USEFTResourceTok, ResourceStream, TextEncoding::UTF8);
+        ResourceName := TestResults.GetDataExchDefResource();
+        if ResourceName = '' then
+            ResourceName := USEFTResourceTok;
+        NavApp.GetResource(ResourceName, ResourceStream, TextEncoding::UTF8);
         XmlDocument.ReadFrom(ResourceStream, XmlDoc);
         if not XmlDoc.SelectSingleNode('/root/DataExchDef', DefNode) then
-            Error(NoDataExchDefInResourceErr, USEFTResourceTok);
+            Error(NoDataExchDefInResourceErr, ResourceName);
         NewCode := UniqueCode('BAX', MaxStrLen(DataExchDef.Code));
         DefNode.AsXmlElement().SetAttribute('Code', NewCode);
 

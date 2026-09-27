@@ -12,6 +12,7 @@ codeunit 81201 "BAACH Test Results"
         RunnerError: Text;
         SuccessCount: Integer;
         FailureCount: Integer;
+        DataExchDefResource: Text;
 
     procedure Initialize()
     begin
@@ -21,7 +22,18 @@ codeunit 81201 "BAACH Test Results"
         SuccessCount := 0;
         FailureCount := 0;
         RunnerError := '';
+        DataExchDefResource := '';
         SuiteStartedAt := CurrentDateTime();
+    end;
+
+    procedure SetDataExchDefResource(ResourceName: Text)
+    begin
+        DataExchDefResource := ResourceName;
+    end;
+
+    procedure GetDataExchDefResource(): Text
+    begin
+        exit(DataExchDefResource);
     end;
 
     procedure AddCodeunitFilter(CodeunitId: Integer)

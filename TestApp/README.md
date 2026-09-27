@@ -62,3 +62,10 @@ Headless limits: a SOAP session cannot show request pages or modal pages, so `Ex
 for its guards; the marking rules are tested through `BAACH Remittance Run Scope`, and the remittance reports
 through `Report.SaveAs` with request-parameter XML. Request-page pre-fill, downloads, email output and action
 visibility need a UI run.
+
+To run the fixtures against the `TANAGER - AMEGY` definition (captured from Texas Transportation Group,
+a 94-character CCD layout) instead of the `US EFT DEFAULT` copy:
+
+```
+./run_tests.py --def TANAGER-AMEGY.xml
+```

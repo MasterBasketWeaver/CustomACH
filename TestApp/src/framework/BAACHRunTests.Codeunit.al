@@ -19,6 +19,44 @@ codeunit 81202 "BAACH Run Tests"
         exit(RunSuite());
     end;
 
+    // Runs one codeunit with the fixtures importing another definition resource, e.g. 'TANAGER-AMEGY.xml'.
+    procedure RunOneCodeunitWithDef(CodeunitId: Integer; DefResource: Text): Text
+    begin
+        TestResults.Initialize();
+        TestResults.AddCodeunitFilter(CodeunitId);
+        TestResults.SetDataExchDefResource(DefResource);
+        exit(RunSuite());
+    end;
+
+    // Imports a definition exported with ExportDataExchDef into this company and commits it. An existing
+    // definition with the same code is left untouched.
+    procedure ImportDataExchDef(DefinitionXml: Text): Text
+    var
+        DataExchDef: Record "Data Exch. Def";
+        TempBlob: Codeunit "Temp Blob";
+        ImportStream: InStream;
+        ImportOutStream: OutStream;
+        XmlDoc: XmlDocument;
+        DefNode: XmlNode;
+        CodeAttribute: XmlAttribute;
+        DefCode: Text;
+    begin
+        XmlDocument.ReadFrom(DefinitionXml, XmlDoc);
+        XmlDoc.SelectSingleNode('/root/DataExchDef', DefNode);
+        DefNode.AsXmlElement().Attributes().Get('Code', CodeAttribute);
+        DefCode := CodeAttribute.Value();
+        if DataExchDef.Get(CopyStr(DefCode, 1, MaxStrLen(DataExchDef.Code))) then
+            exit('exists: ' + DefCode);
+
+        TempBlob.CreateOutStream(ImportOutStream, TextEncoding::UTF8);
+        XmlDoc.WriteTo(ImportOutStream);
+        TempBlob.CreateInStream(ImportStream, TextEncoding::UTF8);
+        Xmlport.Import(Xmlport::"Imp / Exp Data Exch Def & Map", ImportStream);
+        Commit();
+        DataExchDef.Get(CopyStr(DefCode, 1, MaxStrLen(DataExchDef.Code)));
+        exit('imported: ' + DefCode);
+    end;
+
     procedure GetSuiteCodeunits(): Text
     begin
         exit(Suite.ToJson());
