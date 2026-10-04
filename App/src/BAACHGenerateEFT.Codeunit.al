@@ -40,11 +40,23 @@ codeunit 81101 "BAACH Generate EFT"
         BuildWorkset(GenJournalBatch, BankAccount, TempEFTExportWorkset);
 
         EFTRunScope.SetBatch(TemplateName, BatchName);
+        EFTRunScope.SetGeneratingFile();
         BindSubscription(EFTRunScope);
         GenerateEFT.ProcessAndGenerateEFTFile(BankAccount."No.", SettlementDate, TempEFTExportWorkset, EFTValues);
         UnbindSubscription(EFTRunScope);
 
         OnAfterGenerateEFT(TemplateName, BatchName, SettlementDate);
+    end;
+
+    // True only while GenerateForBatch runs the standard EFT engine. The answer comes from the bound run scope, so
+    // it cannot outlive the run when the engine errors. Lets an extension limit its subscribers on standard EFT
+    // events to the files this app generates.
+    procedure IsGeneratingEFTFile(): Boolean
+    var
+        IsGenerating: Boolean;
+    begin
+        OnIsGeneratingEFTFile(IsGenerating);
+        exit(IsGenerating);
     end;
 
     procedure SetLinesToGenerateFilter(var GenJournalLine: Record "Gen. Journal Line"; TemplateName: Code[10]; BatchName: Code[10])
@@ -488,6 +500,11 @@ codeunit 81101 "BAACH Generate EFT"
 
     [IntegrationEvent(false, false)]
     local procedure OnAfterGenerateEFT(TemplateName: Code[10]; BatchName: Code[10]; SettlementDate: Date)
+    begin
+    end;
+
+    [InternalEvent(false)]
+    local procedure OnIsGeneratingEFTFile(var IsGenerating: Boolean)
     begin
     end;
 }

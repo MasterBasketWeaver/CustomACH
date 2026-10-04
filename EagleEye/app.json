@@ -1,10 +1,10 @@
 {
-  "id": "0a54e03a-264b-42de-905a-ff0d63372e46",
-  "name": "Custom ACH Tests",
+  "id": "c34b3dea-16d3-4a1d-a94b-4e14eab6e81b",
+  "name": "Custom ACH Eagle Eye",
   "publisher": "BryanA BC Developments Inc.",
-  "version": "28.0.1.0",
-  "brief": "Automated tests for Custom ACH.",
-  "description": "Test application for Custom ACH: test codeunits, a test runner and a SOAP-callable suite runner. Self-contained; it does not depend on the Microsoft test libraries. Never install in production.",
+  "version": "27.0.1.0",
+  "brief": "Eagle Eye adjustments to Custom ACH.",
+  "description": "Keeps the entry/addenda counts in Custom ACH's EFT files correct alongside Eagle Eye's ACHCustom extension, which adds one to every batch and file control record for the offset entry its Bank of Commerce format writes. For formats without that offset entry, the files Custom ACH generates get the standard count back.",
   "privacyStatement": "",
   "EULA": "",
   "help": "",
@@ -23,8 +23,8 @@
   "application": "27.0.0.0",
   "idRanges": [
     {
-      "from": 81200,
-      "to": 81299
+      "from": 81300,
+      "to": 81349
     }
   ],
   "resourceExposurePolicy": {
@@ -33,9 +33,6 @@
     "includeSourceInSymbolFile": true,
     "applyToDevExtension": true
   },
-  "resourceFolders": [
-    "resources"
-  ],
   "runtime": "16.0",
   "target": "Cloud",
   "features": [

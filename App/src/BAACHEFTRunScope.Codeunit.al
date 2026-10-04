@@ -5,11 +5,24 @@ codeunit 81102 "BAACH EFT Run Scope"
     var
         RunTemplateName: Code[10];
         RunBatchName: Code[10];
+        GeneratingFile: Boolean;
 
     procedure SetBatch(TemplateName: Code[10]; BatchName: Code[10])
     begin
         RunTemplateName := TemplateName;
         RunBatchName := BatchName;
+    end;
+
+    procedure SetGeneratingFile()
+    begin
+        GeneratingFile := true;
+    end;
+
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"BAACH Generate EFT", OnIsGeneratingEFTFile, '', false, false)]
+    local procedure ReportGeneratingFile(var IsGenerating: Boolean)
+    begin
+        if GeneratingFile then
+            IsGenerating := true;
     end;
 
     // Step 1 runs before Export, so Check Exported is still false when Generate EFT checks the lines.

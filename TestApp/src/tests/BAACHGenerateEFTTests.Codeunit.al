@@ -210,6 +210,29 @@ codeunit 81211 "BAACH Generate EFT Tests"
     end;
 
     [Test]
+    procedure IsGeneratingEFTFileIsTrueOnlyWhileTheEngineRuns()
+    var
+        BankAccount: Record "Bank Account";
+        GenJournalBatch: Record "Gen. Journal Batch";
+        GenJournalLine: Record "Gen. Journal Line";
+        BAACHGenerateEFT: Codeunit "BAACH Generate EFT";
+        GenerateProbe: Codeunit "BAACH Generate Probe";
+    begin
+        Library.CreateEFTScenario(BankAccount, GenJournalBatch);
+        Library.CreateVendorPayment(GenJournalLine, GenJournalBatch, 100, true);
+        Library.CreateVendorPayment(GenJournalLine, GenJournalBatch, 50, false);
+        Assert.IsFalse(BAACHGenerateEFT.IsGeneratingEFTFile(), 'Before Generate EFT File');
+
+        BindSubscription(GenerateProbe);
+        Library.GenerateEFT(GenJournalBatch);
+        UnbindSubscription(GenerateProbe);
+
+        Assert.AreEqual(2, GenerateProbe.GetEntryCount(), 'Entry detail records written');
+        Assert.IsTrue(GenerateProbe.WasGeneratingAtEveryEntry(), 'While the engine writes the file');
+        Assert.IsFalse(BAACHGenerateEFT.IsGeneratingEFTFile(), 'After Generate EFT File');
+    end;
+
+    [Test]
     procedure MultipleVendorsAndLinesAreAllGenerated()
     var
         BankAccount: Record "Bank Account";

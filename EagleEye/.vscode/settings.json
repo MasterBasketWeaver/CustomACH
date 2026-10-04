@@ -1,0 +1,10 @@
+{
+    "al.enableCodeAnalysis": true,
+    "al.codeAnalyzers": ["${CodeCop}"],
+    "al.assemblyProbingPaths": ["./.netpackages" ],
+        "al.compilationOptions": {
+        "parallel": true,
+        "maxDegreeOfParallelism": 8
+    },
+    "al.ruleSetPath": "./.vscode/NamespaceWarningDisable.ruleset.json"
+}
