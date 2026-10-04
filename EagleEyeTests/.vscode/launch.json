@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            //https://businesscentral.dynamics.com/de2a36e9-10b6-4c2b-a089-d0e7265e3f06/DEV-SANDBOX
+            "name": "Eagle Eye DEV-SANDBOX",
+            "request": "launch",
+            "type": "al",
+            "tenant": "de2a36e9-10b6-4c2b-a089-d0e7265e3f06",
+            "environmentType": "Sandbox",
+            "environmentName": "DEV-SANDBOX",
+            "startupObjectId": 256,
+            "startupObjectType": "Page",
+            "startupCompany": "Test - Eagle Eye Logistics",
+            "breakOnError": "All",
+            "launchBrowser": false
+        }
+    ]
+}

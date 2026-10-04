@@ -1,5 +1,6 @@
 // The one place a test codeunit is registered: the runner, "BAACH Run Tests" and run_tests.py
-// (through GetSuiteCodeunits) all read this list.
+// (through GetSuiteCodeunits) all read this list. Test apps that extend this one add theirs through
+// OnAfterAllCodeunits.
 codeunit 81205 "BAACH Suite"
 {
     procedure AllCodeunits() Ids: List of [Integer]
@@ -11,6 +12,7 @@ codeunit 81205 "BAACH Suite"
         Ids.Add(Codeunit::"BAACH Remittance Report Tests");
         Ids.Add(Codeunit::"BAACH Posting Tests");
         Ids.Add(Codeunit::"BAACH Void Tests");
+        OnAfterAllCodeunits(Ids);
     end;
 
     procedure ToJson() Result: Text
@@ -35,5 +37,10 @@ codeunit 81205 "BAACH Suite"
         if AllObjWithCaption.Get(AllObjWithCaption."Object Type"::Codeunit, CodeunitId) then
             exit(AllObjWithCaption."Object Name");
         exit('');
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterAllCodeunits(var Ids: List of [Integer])
+    begin
     end;
 }

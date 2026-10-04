@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "EagleEye"
+		},
+		{
+			"path": "EagleEyeTests"
 		}
 	],
 	"settings": {}

@@ -16,6 +16,7 @@ Purchases & Payables Setup. When it is off, standard BC behaviour applies.
 | `App/` | Custom ACH | 81100–81199 |
 | `TestApp/` | Custom ACH Tests (depends on the App; no Microsoft test libraries) | 81200–81299 |
 | `EagleEye/` | Custom ACH Eagle Eye (depends on the App; Eagle Eye only) | 81300–81349 |
+| `EagleEyeTests/` | Custom ACH Eagle Eye Tests (Bank of Commerce-V1 files; joins the TestApp suite) | 81350–81399 |
 
 All objects and fields use the `BAACH` affix.
 
@@ -53,6 +54,10 @@ ACH Eagle Eye** gives files from Custom ACH's Generate EFT File the standard cou
 has no such line, and leaves formats that do untouched. It scopes itself to those runs with
 `"BAACH Generate EFT".IsGeneratingEFTFile()`.
 
+**Custom ACH Eagle Eye Tests** generates files with the company's own `BANK OF COMMERCE-V1` format and
+checks the offset entry, counts, totals and entry hash. It adds its codeunit to the suite through
+`"BAACH Suite".OnAfterAllCodeunits`, so `run_tests.py` runs it with the rest.
+
 ```
 cd ..
 export BC_PROFILE=eagleeye
@@ -61,6 +66,8 @@ alc /project:CustomACH/App /packagecachepath:<pk> /out:CustomACH/output/eagleeye
 cp CustomACH/output/eagleeye/CustomACH.app <pk>/
 alc /project:CustomACH/TestApp /packagecachepath:<pk> /out:CustomACH/output/eagleeye/CustomACHTests.app
 alc /project:CustomACH/EagleEye /packagecachepath:<pk> /out:CustomACH/output/eagleeye/CustomACHEagleEye.app
-./bc_publish.py CustomACH/output/eagleeye/CustomACH.app       # then CustomACHTests.app, CustomACHEagleEye.app
+cp CustomACH/output/eagleeye/CustomACHTests.app CustomACH/output/eagleeye/CustomACHEagleEye.app <pk>/
+alc /project:CustomACH/EagleEyeTests /packagecachepath:<pk> /out:CustomACH/output/eagleeye/CustomACHEagleEyeTests.app
+./bc_publish.py CustomACH/output/eagleeye/CustomACH.app       # then CustomACHTests, CustomACHEagleEye, CustomACHEagleEyeTests
 BC_COMPANY="Test - Eagle Eye Logistics" ./run_tests.py         # also "Test - CTS", "Test - Diesel Repair Shop"
 ```
