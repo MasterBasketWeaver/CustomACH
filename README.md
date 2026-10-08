@@ -67,11 +67,19 @@ failure does not reproduce.
 ## Eagle Eye
 
 Eagle Eye's `DEV-SANDBOX` (tenant `de2a36e9-…`) runs BC 28.0. It ran 27.5 until October 2026, which
-is why the apps target platform/application 27.0 and runtime 16.0; they install on both. A version
-upgrade of the sandbox removes apps published through the dev endpoint, so after one, check with
-`./bc_env.py check` and republish all four, built against the new version's symbols. Its sign-in needs
-MFA: `BC_PROFILE=eagleeye` selects the tenant, and the first run of `bc_auth.py` prints a device code
-to approve once.
+is why the apps target platform/application 27.0 and runtime 16.0; they install on both. Its sign-in
+needs MFA: `BC_PROFILE=eagleeye` selects the tenant, and the first run of `bc_auth.py` prints a device
+code to approve once.
+
+Since 2026-10-08 Custom ACH, Custom ACH Eagle Eye and BALIC Licensing are installed there as **PTEs**
+(uploaded through the automation API's `extensionUpload`), and only the two test apps go through the
+dev endpoint. So the dev-endpoint commands below no longer work for those three. To update one, raise
+its version and upload it as a PTE: BC refuses a PTE with the same app id and version as the package it
+replaces, and the upload then just reports `Failed` with no reason. A version upgrade of the sandbox
+removes the dev-published test apps, so after one, check with `./bc_env.py check` and republish them.
+
+The Eagle Eye app and its tests are also kept in the Eagle Eye repo (MasterBasketWeaver/EagleEye,
+`CustomACH/Custom ACH App` and `CustomACH/Custom ACH Test App`), so change both copies.
 
 Eagle Eye has the `ACHCustom` PTE installed. It adds one to the entry/addenda count of every batch and
 file control record, for the offset entry its Bank of Commerce format writes as a footer line. **Custom

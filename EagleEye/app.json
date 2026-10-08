@@ -2,7 +2,7 @@
   "id": "c34b3dea-16d3-4a1d-a94b-4e14eab6e81b",
   "name": "Custom ACH Eagle Eye",
   "publisher": "BryanA BC Developments Inc.",
-  "version": "27.0.1.0",
+  "version": "27.0.1.1",
   "brief": "Eagle Eye adjustments to Custom ACH.",
   "description": "Keeps the entry/addenda counts in Custom ACH's EFT files correct alongside Eagle Eye's ACHCustom extension, which adds one to every batch and file control record for the offset entry its Bank of Commerce format writes. For formats without that offset entry, the files Custom ACH generates get the standard count back.",
   "privacyStatement": "",
