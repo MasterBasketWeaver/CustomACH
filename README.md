@@ -44,9 +44,12 @@ Never bump the `app.json` version to get a publish through.
 
 ## Eagle Eye
 
-Eagle Eye's `DEV-SANDBOX` (tenant `de2a36e9-…`) runs BC 27.5, which is why the apps target
-platform/application 27.0 and runtime 16.0. Its sign-in needs MFA: `BC_PROFILE=eagleeye` selects the
-tenant, and the first run of `bc_auth.py` prints a device code to approve once.
+Eagle Eye's `DEV-SANDBOX` (tenant `de2a36e9-…`) runs BC 28.0. It ran 27.5 until October 2026, which
+is why the apps target platform/application 27.0 and runtime 16.0; they install on both. A version
+upgrade of the sandbox removes apps published through the dev endpoint, so after one, check with
+`./bc_env.py check` and republish all four, built against the new version's symbols. Its sign-in needs
+MFA: `BC_PROFILE=eagleeye` selects the tenant, and the first run of `bc_auth.py` prints a device code
+to approve once.
 
 Eagle Eye has the `ACHCustom` PTE installed. It adds one to the entry/addenda count of every batch and
 file control record, for the offset entry its Bank of Commerce format writes as a footer line. **Custom
@@ -61,7 +64,7 @@ checks the offset entry, counts, totals and entry hash. It adds its codeunit to 
 ```
 cd ..
 export BC_PROFILE=eagleeye
-./bc_symbols.py --app-dir CustomACH/App --out <pk>      # BC 27.5 symbols, kept apart from Tanager's
+./bc_symbols.py --app-dir CustomACH/App --out <pk>      # the sandbox's own symbols, kept apart from Tanager's
 alc /project:CustomACH/App /packagecachepath:<pk> /out:CustomACH/output/eagleeye/CustomACH.app
 cp CustomACH/output/eagleeye/CustomACH.app <pk>/
 alc /project:CustomACH/TestApp /packagecachepath:<pk> /out:CustomACH/output/eagleeye/CustomACHTests.app
