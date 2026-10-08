@@ -16,6 +16,12 @@
       "name": "Custom ACH",
       "publisher": "BryanA BC Developments Inc.",
       "version": "28.0.1.0"
+    },
+    {
+      "id": "2e64ea38-7434-4adc-bda5-2dafcf192931",
+      "name": "BALIC Licensing",
+      "publisher": "BryanA BC Developments Inc.",
+      "version": "1.0.0.0"
     }
   ],
   "screenshots": [],

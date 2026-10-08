@@ -12,6 +12,7 @@ codeunit 81205 "BAACH Suite"
         Ids.Add(Codeunit::"BAACH Remittance Report Tests");
         Ids.Add(Codeunit::"BAACH Posting Tests");
         Ids.Add(Codeunit::"BAACH Void Tests");
+        Ids.Add(Codeunit::"BAACH License Tests");
         OnAfterAllCodeunits(Ids);
     end;
 

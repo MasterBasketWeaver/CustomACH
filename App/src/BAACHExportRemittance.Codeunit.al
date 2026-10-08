@@ -16,11 +16,13 @@ codeunit 81103 "BAACH Export Remittance"
         RecordRestrictionMgt: Codeunit "Record Restriction Mgt.";
         RemittanceRunScope: Codeunit "BAACH Remittance Run Scope";
         CustomLayoutReporting: Codeunit "Custom Layout Reporting";
+        LicenseGuard: Codeunit "BAACH License Guard";
         GenJournalLineRecRef: RecordRef;
         JoinFieldName: Text;
         JoinTableNo: Integer;
     begin
         CheckEnabled(TemplateName, BatchName);
+        LicenseGuard.CheckLicensed();
         GenJournalBatch.Get(TemplateName, BatchName);
         GenJournalBatch.TestField("Bal. Account Type", GenJournalBatch."Bal. Account Type"::"Bank Account");
         GenJournalBatch.TestField("Bal. Account No.");

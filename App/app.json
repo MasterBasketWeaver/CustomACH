@@ -10,7 +10,14 @@
   "help": "",
   "url": "",
   "logo": "./Logo/BryanALogo.jpg",
-  "dependencies": [],
+  "dependencies": [
+    {
+      "id": "2e64ea38-7434-4adc-bda5-2dafcf192931",
+      "name": "BALIC Licensing",
+      "publisher": "BryanA BC Developments Inc.",
+      "version": "1.0.0.0"
+    }
+  ],
   "screenshots": [],
   "platform": "27.0.0.0",
   "application": "27.0.0.0",

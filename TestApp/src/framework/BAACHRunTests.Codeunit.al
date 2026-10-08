@@ -57,6 +57,23 @@ codeunit 81202 "BAACH Run Tests"
         exit('imported: ' + DefCode);
     end;
 
+    // Custom ACH's own licence verdict in this environment, re-checked now rather than from the hourly cache.
+    procedure GetLicenseStatus() Result: Text
+    var
+        LicenseGuard: Codeunit "BAACH License Guard";
+        EnvironmentInformation: Codeunit "Environment Information";
+        Status: JsonObject;
+    begin
+        LicenseGuard.Refresh();
+        Status.Add('licensed', LicenseGuard.IsLicensed());
+        Status.Add('status', Format(LicenseGuard.GetStatus()));
+        Status.Add('reason', Format(LicenseGuard.GetReason()));
+        Status.Add('expiresAt', Format(LicenseGuard.GetExpiresAt(), 0, 9));
+        Status.Add('environment', EnvironmentInformation.GetEnvironmentName());
+        Status.Add('isSandbox', EnvironmentInformation.IsSandbox());
+        Status.WriteTo(Result);
+    end;
+
     procedure GetSuiteCodeunits(): Text
     begin
         exit(Suite.ToJson());

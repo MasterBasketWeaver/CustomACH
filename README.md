@@ -20,6 +20,23 @@ Purchases & Payables Setup. When it is off, standard BC behaviour applies.
 
 All objects and fields use the `BAACH` affix.
 
+## Licensing
+
+Custom ACH depends on the **BALIC Licensing** app (`2e64ea38-…`, repo
+`MasterBasketWeaver/BCLicensing`), which must be published and installed first
+in every environment, including `MCSandbox_09222026`. Customers upload their
+`.lic` file on its **Licences** page.
+
+- **What is checked:** `App/src/Licensing/` verifies the licence itself.
+  `BAACH License Verifier` is a renamed copy of the licensing app's `BALIC Token
+  Verifier`; keep the two identical.
+- **What it blocks:** Generate EFT File and Export. Void and everything else
+  stay available, so a lapsed customer can still reverse a batch.
+- **Trial:** 7 days in production from the first install. Sandboxes always run,
+  with or without a licence.
+- **Status check:** `BAACHRunTests.GetLicenseStatus` returns the guard's own
+  verdict for the environment.
+
 ## Building and publishing
 
 The tooling lives one level up, outside this repo, next to the credentials:

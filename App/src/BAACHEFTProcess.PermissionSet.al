@@ -10,5 +10,7 @@ permissionset 81100 "BAACH EFT PROCESS"
         codeunit "BAACH Remittance Run Scope" = X,
         codeunit "BAACH Void EFT" = X,
         codeunit "BAACH Line Guard" = X,
+        codeunit "BAACH License Guard" = X,
+        codeunit "BAACH License Verifier" = X,
         page "BAACH Generate EFT Dialog" = X;
 }

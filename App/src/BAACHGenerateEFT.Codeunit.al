@@ -25,9 +25,11 @@ codeunit 81101 "BAACH Generate EFT"
         GenerateEFT: Codeunit "Generate EFT";
         EFTValues: Codeunit "EFT Values";
         EFTRunScope: Codeunit "BAACH EFT Run Scope";
+        LicenseGuard: Codeunit "BAACH License Guard";
     begin
         if not SetupMgt.IsEnabledForBatch(TemplateName, BatchName) then
             Error(NotCustomModeErr, TemplateName, BatchName, PurchasesPayablesSetup.FieldCaption("BAACH Enable EFT Before Export"));
+        LicenseGuard.CheckLicensed();
         if SettlementDate = 0D then
             Error(SettlementDateMissingErr);
 
