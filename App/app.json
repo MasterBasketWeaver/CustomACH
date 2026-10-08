@@ -35,10 +35,10 @@
     }
   ],
   "resourceExposurePolicy": {
-    "allowDebugging": true,
-    "allowDownloadingSource": true,
-    "includeSourceInSymbolFile": true,
-    "applyToDevExtension": true
+    "allowDebugging": false,
+    "allowDownloadingSource": false,
+    "includeSourceInSymbolFile": false,
+    "applyToDevExtension": false
   },
   "runtime": "16.0",
   "target": "Cloud",
