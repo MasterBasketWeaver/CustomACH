@@ -120,7 +120,9 @@ codeunit 81107 "BAACH License Verifier"
             if not GetBoolClaim(Payload, 'sbx') then
                 exit(Fail(Reason, Reason::SandboxNotLicensed));
         end else
-            if not HasListValue(Payload, 'env', EnvironmentName) then
+            // Production is bound by environment type, not name: any production
+            // environment of the tenant is covered when 'env' lists anything.
+            if not CoversProduction(Payload) then
                 exit(Fail(Reason, Reason::WrongEnvironment));
 
         if not GetDateClaim(Payload, 'exp', ExpiresAt) then
@@ -264,6 +266,15 @@ codeunit 81107 "BAACH License Verifier"
                     if LowerCase(ItemText) = LowerCase(Value) then
                         exit(true);
         exit(false);
+    end;
+
+    local procedure CoversProduction(Payload: JsonObject): Boolean
+    var
+        Items: JsonArray;
+    begin
+        if not GetClaimArray(Payload, 'env', Items) then
+            exit(false);
+        exit(Items.Count() > 0);
     end;
 
     local procedure Fail(var Reason: Enum "BALIC Failure Reason"; FailureReason: Enum "BALIC Failure Reason"): Boolean
