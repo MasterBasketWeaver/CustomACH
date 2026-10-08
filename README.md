@@ -15,8 +15,6 @@ Purchases & Payables Setup. When it is off, standard BC behaviour applies.
 |---|---|---|
 | `App/` | Custom ACH | 81100–81199 |
 | `TestApp/` | Custom ACH Tests (depends on the App; no Microsoft test libraries) | 81200–81299 |
-| `EagleEye/` | Custom ACH Eagle Eye (depends on the App; Eagle Eye only) | 81300–81349 |
-| `EagleEyeTests/` | Custom ACH Eagle Eye Tests (Bank of Commerce-V1 files; joins the TestApp suite) | 81350–81399 |
 
 All objects and fields use the `BAACH` affix.
 
@@ -72,24 +70,18 @@ needs MFA: `BC_PROFILE=eagleeye` selects the tenant, and the first run of `bc_au
 code to approve once.
 
 Since 2026-10-08 Custom ACH, Custom ACH Eagle Eye and BALIC Licensing are installed there as **PTEs**
-(uploaded through the automation API's `extensionUpload`), and only the two test apps go through the
-dev endpoint. So the dev-endpoint commands below no longer work for those three. To update one, raise
-its version and upload it as a PTE: BC refuses a PTE with the same app id and version as the package it
-replaces, and the upload then just reports `Failed` with no reason. A version upgrade of the sandbox
-removes the dev-published test apps, so after one, check with `./bc_env.py check` and republish them.
+(uploaded through the automation API's `extensionUpload`); the test apps go through the dev endpoint. So
+the dev-endpoint publish below works only for Custom ACH Tests. To update a PTE, raise its version and
+upload it: BC refuses a PTE with the same app id and version as the package it replaces, and the upload
+then just reports `Failed` with no reason. A version upgrade of the sandbox removes dev-published apps,
+so after one, check with `./bc_env.py check` and republish the test apps.
 
-The Eagle Eye app and its tests are also kept in the Eagle Eye repo (MasterBasketWeaver/EagleEye,
-`CustomACH/Custom ACH App` and `CustomACH/Custom ACH Test App`), so change both copies.
-
-Eagle Eye has the `ACHCustom` PTE installed. It adds one to the entry/addenda count of every batch and
-file control record, for the offset entry its Bank of Commerce format writes as a footer line. **Custom
-ACH Eagle Eye** gives files from Custom ACH's Generate EFT File the standard count back when their format
-has no such line, and leaves formats that do untouched. It scopes itself to those runs with
-`"BAACH Generate EFT".IsGeneratingEFTFile()`.
-
-**Custom ACH Eagle Eye Tests** generates files with the company's own `BANK OF COMMERCE-V1` format and
-checks the offset entry, counts, totals and entry hash. It adds its codeunit to the suite through
-`"BAACH Suite".OnAfterAllCodeunits`, so `run_tests.py` runs it with the rest.
+**Custom ACH Eagle Eye** (81300–81349) and **Custom ACH Eagle Eye Tests** (81350–81399) live in the Eagle
+Eye repo, MasterBasketWeaver/EagleEye, as `CustomACH/Custom ACH App` and `CustomACH/Custom ACH Test App`.
+Eagle Eye's `ACHCustom` PTE adds one to the entry/addenda count for the offset entry its Bank of Commerce
+format writes; Custom ACH Eagle Eye gives Custom ACH's files the standard count back when their format
+has no such line, scoped with `"BAACH Generate EFT".IsGeneratingEFTFile()`. Its tests join this suite
+through `"BAACH Suite".OnAfterAllCodeunits`, so `run_tests.py` runs them when they are installed.
 
 ```
 cd ..
@@ -98,9 +90,6 @@ export BC_PROFILE=eagleeye
 alc /project:CustomACH/App /packagecachepath:<pk> /out:CustomACH/output/eagleeye/CustomACH.app
 cp CustomACH/output/eagleeye/CustomACH.app <pk>/
 alc /project:CustomACH/TestApp /packagecachepath:<pk> /out:CustomACH/output/eagleeye/CustomACHTests.app
-alc /project:CustomACH/EagleEye /packagecachepath:<pk> /out:CustomACH/output/eagleeye/CustomACHEagleEye.app
-cp CustomACH/output/eagleeye/CustomACHTests.app CustomACH/output/eagleeye/CustomACHEagleEye.app <pk>/
-alc /project:CustomACH/EagleEyeTests /packagecachepath:<pk> /out:CustomACH/output/eagleeye/CustomACHEagleEyeTests.app
-./bc_publish.py CustomACH/output/eagleeye/CustomACH.app       # then CustomACHTests, CustomACHEagleEye, CustomACHEagleEyeTests
+./bc_publish.py CustomACH/output/eagleeye/CustomACHTests.app  # Custom ACH itself is a PTE there
 BC_COMPANY="Test - Eagle Eye Logistics" ./run_tests.py         # also "Test - CTS", "Test - Diesel Repair Shop"
 ```

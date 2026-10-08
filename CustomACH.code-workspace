@@ -5,12 +5,6 @@
 		},
 		{
 			"path": "TestApp"
-		},
-		{
-			"path": "EagleEye"
-		},
-		{
-			"path": "EagleEyeTests"
 		}
 	],
 	"settings": {}
