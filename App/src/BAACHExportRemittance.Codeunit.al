@@ -3,7 +3,7 @@ codeunit 81103 "BAACH Export Remittance"
     var
         NotEnabledErr: Label 'The Generate EFT before Export process does not apply to journal batch %1 %2. Turn on Enable EFT Generate before Export in Purchases & Payables Setup and use a batch whose bank account has Export Format US, CA or MX.', Comment = '%1 = journal template name, %2 = journal batch name';
         VendRemittanceReportSelectionErr: Label 'You must add at least one Vendor Remittance report to the report selection.';
-        GenerateEFTFirstErr: Label 'Generate the EFT file first. Line %1 in journal batch %2 %3 does not have an EFT file yet.', Comment = '%1 = line number, %2 = journal template name, %3 = journal batch name';
+        GenerateEFTFirstErr: Label 'Please generate the EFT file first.\Line %1 in journal batch %2 does not have an EFT file yet.', Comment = '%1 = line number, %2 = journal batch name';
         NothingToExportErr: Label 'There is nothing to export in journal batch %1 %2. The remittances for every line with an EFT file have already been exported.', Comment = '%1 = journal template name, %2 = journal batch name';
         LineBankMismatchErr: Label 'Line %1 is paid from bank account %2, but journal batch %3 %4 pays from bank account %5.', Comment = '%1 = line number, %2 = bank account on the line, %3 = journal template name, %4 = journal batch name, %5 = bank account on the batch';
         OutputFileBaseNameTxt: Label 'Remittance Advice';
@@ -78,7 +78,7 @@ codeunit 81103 "BAACH Export Remittance"
         GenJournalLine.SetFilter("Amount (LCY)", '<>0');
         GenJournalLine.SetRange("BAACH EFT File Created", false);
         if GenJournalLine.FindFirst() then
-            Error(GenerateEFTFirstErr, GenJournalLine."Line No.", TemplateName, BatchName);
+            Error(GenerateEFTFirstErr, GenJournalLine."Line No.", BatchName);
     end;
 
     // The report data is filtered on Line No. rather than on Check Transmitted, because the run scope sets

@@ -116,7 +116,7 @@ pageextension 81100 "BAACH Payment Journal" extends "Payment Journal"
 
     var
         CustomMode: Boolean;
-        VoidEFTFileQst: Label 'Only void the EFT file if the generated ACH file will not be sent to the bank. The payment lines are unlocked and get new document numbers when the file is generated again.\\Do you want to void the EFT file?';
+        VoidEFTFileQst: Label 'Do you want to void the EFT file?';
 
     local procedure SetCustomMode()
     var

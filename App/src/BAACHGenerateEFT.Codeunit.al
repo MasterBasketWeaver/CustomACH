@@ -4,7 +4,7 @@ codeunit 81101 "BAACH Generate EFT"
         SetupMgt: Codeunit "BAACH Setup Mgt.";
         NotCustomModeErr: Label 'Generate EFT File is not available for journal batch %1 %2. It needs %3 turned on in Purchases & Payables Setup and a batch whose balancing bank account has Export Format US, CA or MX.', Comment = '%1 = journal template name, %2 = journal batch name, %3 = the setup field caption';
         SettlementDateMissingErr: Label 'You must specify a settlement date.';
-        NothingToGenerateErr: Label 'There is nothing to generate. Journal batch %1 %2 has no electronic payment lines waiting for an EFT file.', Comment = '%1 = journal template name, %2 = journal batch name';
+        NothingToGenerateErr: Label 'There is nothing to generate. Journal batch %1 has no electronic payment lines waiting for an EFT file.', Comment = '%1 = journal batch name';
         LineStateInconsistentErr: Label 'Journal line %1 in %2 %3 is marked Check Printed but has no EFT Export entry waiting to be generated, so the EFT file cannot be generated for it.', Comment = '%1 = line no., %2 = journal template name, %3 = journal batch name';
         NoNextRemittanceNoErr: Label 'The next remittance advice number cannot be calculated from %1 %2 on bank account %3. It must end in a number.', Comment = '%1 = field caption, %2 = current value, %3 = bank account no.';
         HasErrorsErr: Label 'The file export has one or more errors.\\For each line to be exported, resolve the errors displayed to the right and then try to export again.';
@@ -105,7 +105,7 @@ codeunit 81101 "BAACH Generate EFT"
 
         SetLinesToGenerateFilter(GenJournalLine, TemplateName, BatchName);
         if GenJournalLine.IsEmpty() then
-            Error(NothingToGenerateErr, TemplateName, BatchName);
+            Error(NothingToGenerateErr, BatchName);
 
         GenJournalLine.SetRange("Bank Payment Type", GenJournalLine."Bank Payment Type"::"Electronic Payment");
         if not GenJournalLine.IsEmpty() then begin
@@ -487,7 +487,7 @@ codeunit 81101 "BAACH Generate EFT"
             until EFTExport.Next() = 0;
 
         if TempEFTExportWorkset.IsEmpty() then
-            Error(NothingToGenerateErr, GenJournalBatch."Journal Template Name", GenJournalBatch.Name);
+            Error(NothingToGenerateErr, GenJournalBatch.Name);
     end;
 
     [IntegrationEvent(false, false)]
