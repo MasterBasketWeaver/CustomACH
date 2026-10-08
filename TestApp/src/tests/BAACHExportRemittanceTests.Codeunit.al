@@ -218,6 +218,52 @@ codeunit 81213 "BAACH Export Remittance Tests"
         Assert.RecordCount(EFTExport, 3);
     end;
 
+    [Test]
+    procedure ARequestPageLastUsedForAnotherBatchIsLimitedToTheExportedBatch()
+    var
+        BankAccount: Record "Bank Account";
+        GenJournalBatch: Record "Gen. Journal Batch";
+        OtherBatch: Record "Gen. Journal Batch";
+        GenJournalLine: Record "Gen. Journal Line";
+        RemittanceRunScope: Codeunit "BAACH Remittance Run Scope";
+        Parameters: Text;
+    begin
+        Library.CreateEFTScenario(BankAccount, GenJournalBatch);
+        Library.CreateBatchInTemplate(OtherBatch, GenJournalBatch."Journal Template Name", BankAccount."No.");
+        Library.CreateVendorPayment(GenJournalLine, GenJournalBatch, 100, false);
+        Library.GenerateEFT(GenJournalBatch);
+        GenJournalLine.Find();
+        Parameters := LastUsedParameters(OtherBatch);
+        Assert.AreEqual(0, CountLinesToReport(GenJournalBatch, Parameters), 'Lines left by the other batch''s filter');
+
+        RemittanceRunScope.SetBatch(GenJournalBatch."Journal Template Name", GenJournalBatch.Name, BankAccount."No.");
+        RemittanceRunScope.PrefillRequestParameters(Report::"Export Electronic Payments", Parameters);
+
+        Assert.AreEqual(1, CountLinesToReport(GenJournalBatch, Parameters), 'Lines to report after the pre-fill');
+        Assert.IsTrue(ReportDatasetContains(GenJournalBatch, Parameters, GenJournalLine."Document No."), 'The remittance advice must carry the line.');
+    end;
+
+    [Test]
+    procedure ARequestPageNeverUsedIsLimitedToTheExportedBatch()
+    var
+        BankAccount: Record "Bank Account";
+        GenJournalBatch: Record "Gen. Journal Batch";
+        GenJournalLine: Record "Gen. Journal Line";
+        RemittanceRunScope: Codeunit "BAACH Remittance Run Scope";
+        Parameters: Text;
+    begin
+        Library.CreateEFTScenario(BankAccount, GenJournalBatch);
+        Library.CreateVendorPayment(GenJournalLine, GenJournalBatch, 100, false);
+        Library.GenerateEFT(GenJournalBatch);
+        GenJournalLine.Find();
+
+        RemittanceRunScope.SetBatch(GenJournalBatch."Journal Template Name", GenJournalBatch.Name, BankAccount."No.");
+        RemittanceRunScope.PrefillRequestParameters(Report::"Export Electronic Payments", Parameters);
+
+        Assert.AreEqual(1, CountLinesToReport(GenJournalBatch, Parameters), 'Lines to report after the pre-fill');
+        Assert.IsTrue(ReportDatasetContains(GenJournalBatch, Parameters, GenJournalLine."Document No."), 'The remittance advice must carry the line.');
+    end;
+
     local procedure VerifyRunMarksLines(OutputType: Integer)
     var
         BankAccount: Record "Bank Account";
@@ -256,6 +302,67 @@ codeunit 81213 "BAACH Export Remittance Tests"
         Library.CreateAppliedPayment(GenJournalLine, GenJournalBatch, FailedVendor."No.", VendorBankAccount.Code, 100, true);
         Library.CreateAppliedPayment(GenJournalLine, GenJournalBatch, FailedVendor."No.", VendorBankAccount.Code, 20, false);
         Library.CreateVendorPayment(OtherVendorLine, GenJournalBatch, 300, true);
+    end;
+
+    // The saved request page XML BC keeps per user as "last used", with another batch's journal line filter.
+    local procedure LastUsedParameters(OtherBatch: Record "Gen. Journal Batch"): Text
+    var
+        GenJournalLine: Record "Gen. Journal Line";
+    begin
+        Library.FilterBatchLines(GenJournalLine, OtherBatch);
+        exit(
+            '<?xml version="1.0" standalone="yes"?><ReportParameters name="Export Electronic Payments" id="10083"><Options>' +
+            '<Field name="BankAccount.&quot;No.&quot;">' + OtherBatch."Bal. Account No." + '</Field><Field name="NoCopies">0</Field>' +
+            '<Field name="PrintCompany">false</Field></Options><DataItems><DataItem name="Gen. Journal Line">' +
+            GenJournalLine.GetView(false) + '</DataItem></DataItems></ReportParameters>');
+    end;
+
+    // Custom Layout Reporting applies the request page's filters in a filter group of their own on top of the
+    // lines Export passes in, and reports "No data exists" when nothing is left.
+    local procedure FilterLinesToReport(var DataRecRef: RecordRef; GenJournalBatch: Record "Gen. Journal Batch"; Parameters: Text)
+    var
+        GenJournalLine: Record "Gen. Journal Line";
+        RequestPageParametersHelper: Codeunit "Request Page Parameters Helper";
+        TempBlob: Codeunit "Temp Blob";
+        RequestRecRef: RecordRef;
+        ParametersOutStream: OutStream;
+    begin
+        Library.FilterBatchLines(GenJournalLine, GenJournalBatch);
+        GenJournalLine.SetRange("BAACH EFT File Created", true);
+        DataRecRef.GetTable(GenJournalLine);
+        DataRecRef.SetView(GenJournalLine.GetView());
+
+        TempBlob.CreateOutStream(ParametersOutStream, TextEncoding::UTF8);
+        ParametersOutStream.WriteText(Parameters);
+        RequestRecRef.Open(Database::"Gen. Journal Line");
+        RequestPageParametersHelper.ConvertParametersToFilters(RequestRecRef, TempBlob, TextEncoding::UTF8);
+        DataRecRef.FilterGroup(10);
+        DataRecRef.SetView(RequestRecRef.GetView());
+        DataRecRef.FilterGroup(0);
+    end;
+
+    local procedure CountLinesToReport(GenJournalBatch: Record "Gen. Journal Batch"; Parameters: Text): Integer
+    var
+        DataRecRef: RecordRef;
+    begin
+        FilterLinesToReport(DataRecRef, GenJournalBatch, Parameters);
+        exit(DataRecRef.Count());
+    end;
+
+    local procedure ReportDatasetContains(GenJournalBatch: Record "Gen. Journal Batch"; Parameters: Text; Value: Text): Boolean
+    var
+        TempBlob: Codeunit "Temp Blob";
+        DataRecRef: RecordRef;
+        ReportOutStream: OutStream;
+        ReportInStream: InStream;
+        Dataset: Text;
+    begin
+        FilterLinesToReport(DataRecRef, GenJournalBatch, Parameters);
+        TempBlob.CreateOutStream(ReportOutStream, TextEncoding::UTF8);
+        Report.SaveAs(Report::"Export Electronic Payments", Parameters, ReportFormat::Xml, ReportOutStream, DataRecRef);
+        TempBlob.CreateInStream(ReportInStream, TextEncoding::UTF8);
+        ReportInStream.Read(Dataset);
+        exit(Dataset.Contains('>' + Value + '<'));
     end;
 
     local procedure ExportWithFailedEmail(GenJournalBatch: Record "Gen. Journal Batch"; FailedVendorNo: Code[20])

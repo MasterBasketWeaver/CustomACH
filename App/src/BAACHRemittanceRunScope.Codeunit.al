@@ -13,6 +13,8 @@ codeunit 81104 "BAACH Remittance Run Scope"
         BankOptionNameTok: Label 'BankAccount."No."', Locked = true;
         ReportParametersTok: Label 'ReportParameters', Locked = true;
         OptionsTok: Label 'Options', Locked = true;
+        DataItemsTok: Label 'DataItems', Locked = true;
+        DataItemTok: Label 'DataItem', Locked = true;
         FieldTok: Label 'Field', Locked = true;
         NameTok: Label 'name', Locked = true;
         RequestPageBankErr: Label 'Report %1 %2 is set to bank account %3, but journal batch %4 %5 pays from bank account %6. The report only includes payments from the bank account chosen on its request page. Choose bank account %6 and run Export again.', Comment = '%1 = report ID, %2 = report caption, %3 = bank account on the request page, %4 = journal template name, %5 = journal batch name, %6 = bank account of the batch';
@@ -119,12 +121,21 @@ codeunit 81104 "BAACH Remittance Run Scope"
     end;
 
     [EventSubscriber(ObjectType::Codeunit, Codeunit::"Custom Layout Reporting", 'OnRunRequestPageOnBeforeReportRunRequestPage', '', false, false)]
-    local procedure PrefillBankOnRunRequestPage(ReportId: Integer; var SavedParameters: Text)
+    local procedure PrefillOnRunRequestPage(ReportId: Integer; var SavedParameters: Text)
     begin
-        if not (ReportId in [Report::"Export Electronic Payments", Report::"ExportElecPayments - Word"]) then
-            if not HasBankOption(SavedParameters) then
-                exit;
-        SetBankOption(ReportId, SavedParameters);
+        PrefillRequestParameters(ReportId, SavedParameters);
+    end;
+
+    // The saved request page holds the user's last-used journal line filters, often another batch's. Custom Layout
+    // Reporting intersects them with the lines being exported, which leaves nothing to report ("No data exists").
+    procedure PrefillRequestParameters(ReportId: Integer; var SavedParameters: Text)
+    var
+        IsStandardReport: Boolean;
+    begin
+        IsStandardReport := ReportId in [Report::"Export Electronic Payments", Report::"ExportElecPayments - Word"];
+        if IsStandardReport or HasBankOption(SavedParameters) then
+            SetBankOption(ReportId, SavedParameters);
+        SetJournalLineFilter(ReportId, SavedParameters, IsStandardReport);
     end;
 
     // Every run raises OnBeforeRunReportWithCustomReportSelection, except a RunReport call whose OnBeforeRunReport
@@ -241,6 +252,60 @@ codeunit 81104 "BAACH Remittance Run Scope"
             OptionsElement.Add(BankField);
         end;
         BankField.Add(XmlText.Create(BatchBankAccountNo));
+
+        ParametersXml.WriteTo(SavedParameters);
+    end;
+
+    local procedure SetJournalLineFilter(ReportId: Integer; var SavedParameters: Text; CreateIfMissing: Boolean)
+    var
+        GenJournalLine: Record "Gen. Journal Line";
+        ParametersXml: XmlDocument;
+        RootElement: XmlElement;
+        DataItemsElement: XmlElement;
+        DataItemElement: XmlElement;
+        DataItemsNode: XmlNode;
+        DataItemNode: XmlNode;
+        NameAttribute: XmlAttribute;
+        Found: Boolean;
+    begin
+        if SavedParameters = '' then begin
+            if not CreateIfMissing then
+                exit;
+            CreateParametersXml(ReportId, ParametersXml);
+        end else
+            if not XmlDocument.ReadFrom(SavedParameters, ParametersXml) then
+                exit;
+        if not ParametersXml.GetRoot(RootElement) then
+            exit;
+
+        if RootElement.SelectSingleNode(DataItemsTok, DataItemsNode) then
+            DataItemsElement := DataItemsNode.AsXmlElement()
+        else begin
+            if not CreateIfMissing then
+                exit;
+            DataItemsElement := XmlElement.Create(DataItemsTok);
+            RootElement.Add(DataItemsElement);
+        end;
+
+        foreach DataItemNode in DataItemsElement.GetChildElements(DataItemTok) do
+            if not Found then
+                if DataItemNode.AsXmlElement().Attributes().Get(NameTok, NameAttribute) then
+                    if NameAttribute.Value() = GenJournalLine.TableName() then begin
+                        DataItemElement := DataItemNode.AsXmlElement();
+                        DataItemElement.RemoveNodes();
+                        Found := true;
+                    end;
+        if not Found then begin
+            if not CreateIfMissing then
+                exit;
+            DataItemElement := XmlElement.Create(DataItemTok);
+            DataItemElement.SetAttribute(NameTok, GenJournalLine.TableName());
+            DataItemsElement.Add(DataItemElement);
+        end;
+
+        GenJournalLine.SetRange("Journal Template Name", JnlTemplateName);
+        GenJournalLine.SetRange("Journal Batch Name", JnlBatchName);
+        DataItemElement.Add(XmlText.Create(GenJournalLine.GetView(false)));
 
         ParametersXml.WriteTo(SavedParameters);
     end;

@@ -74,6 +74,155 @@ codeunit 81202 "BAACH Run Tests"
         Status.WriteTo(Result);
     end;
 
+    // Read-only: what Export would hand the V.Remittance reports for a batch, using the calling user's saved request
+    // page values, plus a Report.SaveAs dry run, so "No data exists" can be traced without exporting anything.
+    procedure GetExportDiagnostics(TemplateName: Text; BatchName: Text) Result: Text
+    var
+        GenJournalTemplate: Record "Gen. Journal Template";
+        GenJournalLine: Record "Gen. Journal Line";
+        ReportSelections: Record "Report Selections";
+        CustomReportSelection: Record "Custom Report Selection";
+        CustomLayoutReporting: Codeunit "Custom Layout Reporting";
+        RemittanceRunScope: Codeunit "BAACH Remittance Run Scope";
+        RequestPageParametersHelper: Codeunit "Request Page Parameters Helper";
+        TempBlob: Codeunit "Temp Blob";
+        ParamsOutStream: OutStream;
+        ReportOutStream: OutStream;
+        ReportInStream: InStream;
+        DataRecRef: RecordRef;
+        RequestRecRef: RecordRef;
+        Diagnostics: JsonObject;
+        Lines: JsonArray;
+        Selections: JsonArray;
+        Reports: JsonArray;
+        Entry: JsonObject;
+        SavedParameters: Text;
+        ReportXml: Text;
+        LineNoFilter: Text;
+        Saved: Boolean;
+    begin
+        if GenJournalTemplate.Get(CopyStr(TemplateName, 1, MaxStrLen(GenJournalTemplate.Name))) then
+            Diagnostics.Add('forceDocBalance', GenJournalTemplate."Force Doc. Balance");
+        Diagnostics.Add('userId', UserId());
+
+        GenJournalLine.SetRange("Journal Template Name", CopyStr(TemplateName, 1, 10));
+        GenJournalLine.SetRange("Journal Batch Name", CopyStr(BatchName, 1, 10));
+        if GenJournalLine.FindSet() then
+            repeat
+                Clear(Entry);
+                Entry.Add('lineNo', GenJournalLine."Line No.");
+                Entry.Add('documentType', Format(GenJournalLine."Document Type"));
+                Entry.Add('documentNo', GenJournalLine."Document No.");
+                Entry.Add('accountType', Format(GenJournalLine."Account Type"));
+                Entry.Add('accountNo', GenJournalLine."Account No.");
+                Entry.Add('balAccountType', Format(GenJournalLine."Bal. Account Type"));
+                Entry.Add('balAccountNo', GenJournalLine."Bal. Account No.");
+                Entry.Add('bankPaymentType', Format(GenJournalLine."Bank Payment Type"));
+                Entry.Add('checkPrinted', GenJournalLine."Check Printed");
+                Entry.Add('checkExported', GenJournalLine."Check Exported");
+                Entry.Add('checkTransmitted', GenJournalLine."Check Transmitted");
+                Entry.Add('eftFileCreated', GenJournalLine."BAACH EFT File Created");
+                Entry.Add('appliesToId', GenJournalLine."Applies-to ID");
+                Entry.Add('appliesToDocNo', GenJournalLine."Applies-to Doc. No.");
+                Entry.Add('remitToCode', GenJournalLine."Remit-to Code");
+                Lines.Add(Entry);
+                if GenJournalLine."BAACH EFT File Created" and not GenJournalLine."Check Transmitted" then begin
+                    if LineNoFilter <> '' then
+                        LineNoFilter += '|';
+                    LineNoFilter += Format(GenJournalLine."Line No.", 0, 9);
+                end;
+            until GenJournalLine.Next() = 0;
+        Diagnostics.Add('lines', Lines);
+        Diagnostics.Add('exportLineNoFilter', LineNoFilter);
+
+        CustomReportSelection.SetRange(Usage, CustomReportSelection.Usage::"V.Remittance");
+        if CustomReportSelection.FindSet() then
+            repeat
+                Clear(Entry);
+                Entry.Add('sourceType', CustomReportSelection."Source Type");
+                Entry.Add('sourceNo', CustomReportSelection."Source No.");
+                Entry.Add('reportId', CustomReportSelection."Report ID");
+                Entry.Add('customReportLayoutCode', CustomReportSelection."Custom Report Layout Code");
+                Entry.Add('emailAttachmentLayoutName', CustomReportSelection."Email Attachment Layout Name");
+                Entry.Add('sendToEmailSet', CustomReportSelection."Send To Email" <> '');
+                Selections.Add(Entry);
+            until CustomReportSelection.Next() = 0;
+        Diagnostics.Add('customReportSelections', Selections);
+
+        ReportSelections.SetRange(Usage, ReportSelections.Usage::"V.Remittance");
+        ReportSelections.SetFilter("Report ID", '<>0');
+        if ReportSelections.FindSet() then
+            repeat
+                Clear(Entry);
+                Entry.Add('reportId', ReportSelections."Report ID");
+                SavedParameters := CustomLayoutReporting.GetReportRequestPageParameters(ReportSelections."Report ID");
+                Entry.Add('savedParameters', SavedParameters);
+
+                GenJournalLine.Reset();
+                GenJournalLine.SetRange("Journal Template Name", CopyStr(TemplateName, 1, 10));
+                GenJournalLine.SetRange("Journal Batch Name", CopyStr(BatchName, 1, 10));
+                if LineNoFilter <> '' then
+                    GenJournalLine.SetFilter("Line No.", LineNoFilter);
+                DataRecRef.GetTable(GenJournalLine);
+                DataRecRef.SetView(GenJournalLine.GetView());
+
+                if SavedParameters <> '' then begin
+                    Clear(TempBlob);
+                    TempBlob.CreateOutStream(ParamsOutStream, TextEncoding::UTF8);
+                    ParamsOutStream.WriteText(SavedParameters);
+                    RequestRecRef.Open(Database::"Gen. Journal Line");
+                    RequestPageParametersHelper.ConvertParametersToFilters(RequestRecRef, TempBlob, TextEncoding::UTF8);
+                    Entry.Add('requestPageView', RequestRecRef.GetView());
+                    DataRecRef.FilterGroup(10);
+                    DataRecRef.SetView(RequestRecRef.GetView());
+                    DataRecRef.FilterGroup(0);
+                    RequestRecRef.Close();
+                end;
+                Entry.Add('linesMatchingExportAndRequestPage', DataRecRef.Count());
+                DataRecRef.Close();
+
+                RemittanceRunScope.SetBatch(CopyStr(TemplateName, 1, 10), CopyStr(BatchName, 1, 10), BatchBankAccountNo(TemplateName, BatchName));
+                RemittanceRunScope.PrefillRequestParameters(ReportSelections."Report ID", SavedParameters);
+                Entry.Add('prefilledParameters', SavedParameters);
+                DataRecRef.GetTable(GenJournalLine);
+                DataRecRef.SetView(GenJournalLine.GetView());
+                Clear(TempBlob);
+                TempBlob.CreateOutStream(ParamsOutStream, TextEncoding::UTF8);
+                ParamsOutStream.WriteText(SavedParameters);
+                RequestRecRef.Open(Database::"Gen. Journal Line");
+                RequestPageParametersHelper.ConvertParametersToFilters(RequestRecRef, TempBlob, TextEncoding::UTF8);
+                DataRecRef.FilterGroup(10);
+                DataRecRef.SetView(RequestRecRef.GetView());
+                DataRecRef.FilterGroup(0);
+                RequestRecRef.Close();
+                Entry.Add('linesMatchingAfterPrefill', DataRecRef.Count());
+
+                Clear(TempBlob);
+                TempBlob.CreateOutStream(ReportOutStream, TextEncoding::UTF8);
+                ClearLastError();
+                Saved := Report.SaveAs(ReportSelections."Report ID", SavedParameters, ReportFormat::Xml, ReportOutStream, DataRecRef);
+                Entry.Add('saveAsSucceeded', Saved);
+                Entry.Add('saveAsError', GetLastErrorText());
+                Entry.Add('saveAsCallStack', GetLastErrorCallStack());
+                TempBlob.CreateInStream(ReportInStream, TextEncoding::UTF8);
+                ReportInStream.Read(ReportXml);
+                Entry.Add('reportXmlLength', StrLen(ReportXml));
+                Entry.Add('reportXmlHead', CopyStr(ReportXml, 1, 3000));
+                DataRecRef.Close();
+                Reports.Add(Entry);
+            until ReportSelections.Next() = 0;
+        Diagnostics.Add('reports', Reports);
+        Diagnostics.WriteTo(Result);
+    end;
+
+    local procedure BatchBankAccountNo(TemplateName: Text; BatchName: Text): Code[20]
+    var
+        GenJournalBatch: Record "Gen. Journal Batch";
+    begin
+        if GenJournalBatch.Get(CopyStr(TemplateName, 1, 10), CopyStr(BatchName, 1, 10)) then
+            exit(GenJournalBatch."Bal. Account No.");
+    end;
+
     procedure GetSuiteCodeunits(): Text
     begin
         exit(Suite.ToJson());
