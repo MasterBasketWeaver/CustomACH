@@ -42,6 +42,11 @@ alc /project:CustomACH/TestApp /packagecachepath:CustomACH/TestApp/.alpackages /
 `~/.vscode/extensions/ms-dynamics-smb.al-<version>/bin/linux/alc`.
 Never bump the `app.json` version to get a publish through.
 
+`run_tests.py` records every run in `../test_runs/<time>_<env>_<company>.json`: each test's result,
+error and call stack, plus a `failures` list and a `status` of `passed`, `failed` or `aborted`. The
+file is rewritten after each codeunit, so a run that dies partway keeps what it got. Check it when a
+failure does not reproduce.
+
 ## Eagle Eye
 
 Eagle Eye's `DEV-SANDBOX` (tenant `de2a36e9-…`) runs BC 28.0. It ran 27.5 until October 2026, which
