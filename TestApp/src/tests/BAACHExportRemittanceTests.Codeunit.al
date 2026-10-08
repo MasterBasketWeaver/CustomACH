@@ -264,6 +264,91 @@ codeunit 81213 "BAACH Export Remittance Tests"
         Assert.IsTrue(ReportDatasetContains(GenJournalBatch, Parameters, GenJournalLine."Document No."), 'The remittance advice must carry the line.');
     end;
 
+    [Test]
+    procedure AnotherBatchChosenOnTheRequestPageIsReplacedByTheExportedBatch()
+    var
+        BankAccount: Record "Bank Account";
+        GenJournalBatch: Record "Gen. Journal Batch";
+        OtherBatch: Record "Gen. Journal Batch";
+        GenJournalLine: Record "Gen. Journal Line";
+        OtherLine: Record "Gen. Journal Line";
+        RemittanceRunScope: Codeunit "BAACH Remittance Run Scope";
+        Parameters: Text;
+    begin
+        CreateTwoGeneratedBatches(BankAccount, GenJournalBatch, OtherBatch, GenJournalLine, OtherLine);
+        Parameters := LastUsedParameters(OtherBatch);
+        RemittanceRunScope.SetBatch(GenJournalBatch."Journal Template Name", GenJournalBatch.Name, BankAccount."No.");
+
+        Assert.IsTrue(RemittanceRunScope.LimitRequestParametersToBatch(Parameters), 'The journal line data item must be found.');
+
+        VerifyParametersLimitedTo(Parameters, GenJournalBatch);
+        Assert.AreEqual(1, CountLinesToReport(GenJournalBatch, Parameters), 'Lines to report');
+        VerifyDatasetHasOnlyTheExportedBatch(Parameters, GenJournalLine, OtherLine);
+    end;
+
+    [Test]
+    procedure ARequestPageWithoutABatchFilterReportsOnlyTheExportedBatch()
+    var
+        BankAccount: Record "Bank Account";
+        GenJournalBatch: Record "Gen. Journal Batch";
+        OtherBatch: Record "Gen. Journal Batch";
+        GenJournalLine: Record "Gen. Journal Line";
+        OtherLine: Record "Gen. Journal Line";
+        UserFilterLine: Record "Gen. Journal Line";
+        TempBlobIndicesNameValueBuffer: Record "Name/Value Buffer" temporary;
+        RemittanceRunScope: Codeunit "BAACH Remittance Run Scope";
+        TempBlobList: Codeunit "Temp Blob List";
+        Parameters: Text;
+    begin
+        CreateTwoGeneratedBatches(BankAccount, GenJournalBatch, OtherBatch, GenJournalLine, OtherLine);
+        UserFilterLine.SetRange("Journal Template Name", GenJournalBatch."Journal Template Name");
+        UserFilterLine.SetRange("Document Type", UserFilterLine."Document Type"::Payment);
+        StoreRequestParameters(TempBlobIndicesNameValueBuffer, TempBlobList, RequestPageParameters(BankAccount."No.", UserFilterLine.GetView(false)));
+        RemittanceRunScope.SetBatch(GenJournalBatch."Journal Template Name", GenJournalBatch.Name, BankAccount."No.");
+
+        RemittanceRunScope.LimitStoredParametersToBatch(TempBlobIndicesNameValueBuffer, TempBlobList);
+
+        Parameters := ReadStoredRequestParameters(TempBlobIndicesNameValueBuffer, TempBlobList);
+        VerifyParametersLimitedTo(Parameters, GenJournalBatch);
+        Assert.AreEqual(UserFilterLine.GetFilter("Document Type"), GetParametersFilter(Parameters, UserFilterLine.FieldNo("Document Type")), 'The user''s own filter must be kept.');
+        VerifyDatasetHasOnlyTheExportedBatch(Parameters, GenJournalLine, OtherLine);
+    end;
+
+    [Test]
+    procedure RequestPageFiltersThatLeaveNothingGiveAClearError()
+    var
+        BankAccount: Record "Bank Account";
+        GenJournalBatch: Record "Gen. Journal Batch";
+        OtherBatch: Record "Gen. Journal Batch";
+        GenJournalLine: Record "Gen. Journal Line";
+        OtherLine: Record "Gen. Journal Line";
+        RemittanceRunScope: Codeunit "BAACH Remittance Run Scope";
+        DataRecRef: RecordRef;
+    begin
+        CreateTwoGeneratedBatches(BankAccount, GenJournalBatch, OtherBatch, GenJournalLine, OtherLine);
+        FilterLinesToReport(DataRecRef, GenJournalBatch, LastUsedParameters(OtherBatch));
+        RemittanceRunScope.SetBatch(GenJournalBatch."Journal Template Name", GenJournalBatch.Name, BankAccount."No.");
+
+        Commit();
+        asserterror RemittanceRunScope.CheckLinesLeftToReport(DataRecRef);
+        Assert.ExpectedErrorContains(GenJournalBatch.Name);
+    end;
+
+    [Test]
+    procedure AReportWithoutAJournalLineDataItemIsLeftAlone()
+    var
+        RemittanceRunScope: Codeunit "BAACH Remittance Run Scope";
+        Parameters: Text;
+        OriginalParameters: Text;
+    begin
+        OriginalParameters := '<?xml version="1.0" standalone="yes"?><ReportParameters id="50000"><Options><Field name="NoCopies">0</Field></Options><DataItems><DataItem name="Vendor">VERSION(1) SORTING(Field1)</DataItem></DataItems></ReportParameters>';
+        Parameters := OriginalParameters;
+        RemittanceRunScope.SetBatch('PAYMENT', 'ACH', 'CHECKING');
+
+        Assert.IsFalse(RemittanceRunScope.LimitRequestParametersToBatch(Parameters), 'No journal line data item to limit');
+        Assert.AreEqual(OriginalParameters, Parameters, 'The parameters must not change.');
+    end;
+
     local procedure VerifyRunMarksLines(OutputType: Integer)
     var
         BankAccount: Record "Bank Account";
@@ -310,11 +395,102 @@ codeunit 81213 "BAACH Export Remittance Tests"
         GenJournalLine: Record "Gen. Journal Line";
     begin
         Library.FilterBatchLines(GenJournalLine, OtherBatch);
+        exit(RequestPageParameters(OtherBatch."Bal. Account No.", GenJournalLine.GetView(false)));
+    end;
+
+    local procedure RequestPageParameters(BankAccountNo: Code[20]; JournalLineView: Text): Text
+    begin
         exit(
             '<?xml version="1.0" standalone="yes"?><ReportParameters name="Export Electronic Payments" id="10083"><Options>' +
-            '<Field name="BankAccount.&quot;No.&quot;">' + OtherBatch."Bal. Account No." + '</Field><Field name="NoCopies">0</Field>' +
+            '<Field name="BankAccount.&quot;No.&quot;">' + BankAccountNo + '</Field><Field name="NoCopies">0</Field>' +
             '<Field name="PrintCompany">false</Field></Options><DataItems><DataItem name="Gen. Journal Line">' +
-            GenJournalLine.GetView(false) + '</DataItem></DataItems></ReportParameters>');
+            JournalLineView + '</DataItem></DataItems></ReportParameters>');
+    end;
+
+    local procedure CreateTwoGeneratedBatches(var BankAccount: Record "Bank Account"; var GenJournalBatch: Record "Gen. Journal Batch"; var OtherBatch: Record "Gen. Journal Batch"; var GenJournalLine: Record "Gen. Journal Line"; var OtherLine: Record "Gen. Journal Line")
+    begin
+        Library.CreateEFTScenario(BankAccount, GenJournalBatch);
+        Library.CreateBatchInTemplate(OtherBatch, GenJournalBatch."Journal Template Name", BankAccount."No.");
+        Library.CreateVendorPayment(GenJournalLine, GenJournalBatch, 100, false);
+        Library.CreateVendorPayment(OtherLine, OtherBatch, 200, false);
+        Library.GenerateEFT(GenJournalBatch);
+        Library.GenerateEFT(OtherBatch);
+        GenJournalLine.Find();
+        OtherLine.Find();
+    end;
+
+    // As Custom Layout Reporting stores the parameters and reads them back for Report.SaveAs, with a single ReadText.
+    local procedure StoreRequestParameters(var TempBlobIndicesNameValueBuffer: Record "Name/Value Buffer" temporary; var TempBlobList: Codeunit "Temp Blob List"; Parameters: Text)
+    var
+        TempBlob: Codeunit "Temp Blob";
+        ParametersOutStream: OutStream;
+    begin
+        TempBlob.CreateOutStream(ParametersOutStream, TextEncoding::UTF8);
+        ParametersOutStream.WriteText(Parameters);
+        TempBlobList.Add(TempBlob);
+        TempBlobIndicesNameValueBuffer.ID := Report::"Export Electronic Payments";
+        TempBlobIndicesNameValueBuffer.Value := Format(TempBlobList.Count());
+        TempBlobIndicesNameValueBuffer.Insert();
+    end;
+
+    local procedure ReadStoredRequestParameters(var TempBlobIndicesNameValueBuffer: Record "Name/Value Buffer" temporary; var TempBlobList: Codeunit "Temp Blob List") Parameters: Text
+    var
+        TempBlob: Codeunit "Temp Blob";
+        ParametersInStream: InStream;
+        Index: Integer;
+    begin
+        TempBlobIndicesNameValueBuffer.Get(Report::"Export Electronic Payments");
+        Evaluate(Index, TempBlobIndicesNameValueBuffer.Value);
+        TempBlobList.Get(Index, TempBlob);
+        TempBlob.CreateInStream(ParametersInStream, TextEncoding::UTF8);
+        ParametersInStream.ReadText(Parameters);
+    end;
+
+    local procedure GetParametersFilter(Parameters: Text; FieldNo: Integer): Text
+    var
+        RequestRecRef: RecordRef;
+    begin
+        ApplyParametersView(RequestRecRef, Parameters);
+        exit(RequestRecRef.Field(FieldNo).GetFilter());
+    end;
+
+    local procedure ApplyParametersView(var RequestRecRef: RecordRef; Parameters: Text)
+    var
+        RequestPageParametersHelper: Codeunit "Request Page Parameters Helper";
+        TempBlob: Codeunit "Temp Blob";
+        ParametersOutStream: OutStream;
+    begin
+        TempBlob.CreateOutStream(ParametersOutStream, TextEncoding::UTF8);
+        ParametersOutStream.WriteText(Parameters);
+        RequestRecRef.Open(Database::"Gen. Journal Line");
+        RequestPageParametersHelper.ConvertParametersToFilters(RequestRecRef, TempBlob, TextEncoding::UTF8);
+    end;
+
+    local procedure VerifyParametersLimitedTo(Parameters: Text; GenJournalBatch: Record "Gen. Journal Batch")
+    var
+        GenJournalLine: Record "Gen. Journal Line";
+    begin
+        Assert.AreEqual(GenJournalBatch."Journal Template Name", GetParametersFilter(Parameters, GenJournalLine.FieldNo("Journal Template Name")), 'Journal template filter');
+        Assert.AreEqual(GenJournalBatch.Name, GetParametersFilter(Parameters, GenJournalLine.FieldNo("Journal Batch Name")), 'Journal batch filter');
+    end;
+
+    // The record passed to Report.SaveAs carries only the parameters' own filters, so the dataset shows what the
+    // parameters alone let through, whichever of the two the report gives precedence.
+    local procedure VerifyDatasetHasOnlyTheExportedBatch(Parameters: Text; GenJournalLine: Record "Gen. Journal Line"; OtherLine: Record "Gen. Journal Line")
+    var
+        TempBlob: Codeunit "Temp Blob";
+        DataRecRef: RecordRef;
+        ReportOutStream: OutStream;
+        ReportInStream: InStream;
+        Dataset: Text;
+    begin
+        ApplyParametersView(DataRecRef, Parameters);
+        TempBlob.CreateOutStream(ReportOutStream, TextEncoding::UTF8);
+        Report.SaveAs(Report::"Export Electronic Payments", Parameters, ReportFormat::Xml, ReportOutStream, DataRecRef);
+        TempBlob.CreateInStream(ReportInStream, TextEncoding::UTF8);
+        ReportInStream.Read(Dataset);
+        Assert.IsTrue(Dataset.Contains('>' + GenJournalLine."Document No." + '<'), 'The exported batch''s line must be on the remittance advice.');
+        Assert.IsFalse(Dataset.Contains('>' + OtherLine."Document No." + '<'), 'The other batch''s line must not be on the remittance advice.');
     end;
 
     // Custom Layout Reporting applies the request page's filters in a filter group of their own on top of the

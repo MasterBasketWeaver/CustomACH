@@ -10,6 +10,7 @@ codeunit 81104 "BAACH Remittance Run Scope"
         LinesMarked: Boolean;
         BankOptionsVerified: Boolean;
         EmailRunSeen: Boolean;
+        AnyReportRun: Boolean;
         BankOptionNameTok: Label 'BankAccount."No."', Locked = true;
         ReportParametersTok: Label 'ReportParameters', Locked = true;
         OptionsTok: Label 'Options', Locked = true;
@@ -18,6 +19,7 @@ codeunit 81104 "BAACH Remittance Run Scope"
         FieldTok: Label 'Field', Locked = true;
         NameTok: Label 'name', Locked = true;
         RequestPageBankErr: Label 'Report %1 %2 is set to bank account %3, but journal batch %4 %5 pays from bank account %6. The report only includes payments from the bank account chosen on its request page. Choose bank account %6 and run Export again.', Comment = '%1 = report ID, %2 = report caption, %3 = bank account on the request page, %4 = journal template name, %5 = journal batch name, %6 = bank account of the batch';
+        NothingLeftToReportErr: Label 'The journal line filters on the remittance report''s request page leave no lines of journal batch %1 to report on. Clear those filters, or set them to batch %1, and run Export again.', Comment = '%1 = journal batch name';
 
     procedure SetBatch(TemplateName: Code[10]; BatchName: Code[10]; BankAccountNo: Code[20])
     begin
@@ -28,6 +30,7 @@ codeunit 81104 "BAACH Remittance Run Scope"
         LinesMarked := false;
         BankOptionsVerified := false;
         EmailRunSeen := false;
+        AnyReportRun := false;
     end;
 
     // OutputType uses Custom Layout Reporting's option values (GetPreviewOption() etc.).
@@ -156,6 +159,10 @@ codeunit 81104 "BAACH Remittance Run Scope"
     var
         CustomLayoutReporting: Codeunit "Custom Layout Reporting";
     begin
+        if not AnyReportRun then begin
+            LimitStoredParametersToBatch(TempBlobIndicesNameValueBuffer, TempBlobList);
+            AnyReportRun := true;
+        end;
         if OutputType = CustomLayoutReporting.GetPreviewOption() then
             exit;
         if OutputType = CustomLayoutReporting.GetEmailOption() then
@@ -165,6 +172,84 @@ codeunit 81104 "BAACH Remittance Run Scope"
             BankOptionsVerified := true;
         end;
         MarkLinesExported(OutputType);
+    end;
+
+    // The request page's journal line filters can be changed by the user, and Report.SaveAs reads them from the
+    // stored parameters, so they are pinned to the exported batch before the first report runs. Any other filter
+    // the user set is kept.
+    procedure LimitStoredParametersToBatch(var TempBlobIndicesNameValueBuffer: Record "Name/Value Buffer" temporary; var TempBlobList: Codeunit "Temp Blob List")
+    var
+        TempReportParametersBuffer: Record "Name/Value Buffer" temporary;
+        TempBlob: Codeunit "Temp Blob";
+        LimitedTempBlob: Codeunit "Temp Blob";
+        TypeHelper: Codeunit "Type Helper";
+        ParametersInStream: InStream;
+        ParametersOutStream: OutStream;
+        Parameters: Text;
+        Index: Integer;
+    begin
+        TempReportParametersBuffer.Copy(TempBlobIndicesNameValueBuffer, true);
+        TempReportParametersBuffer.Reset();
+        if TempReportParametersBuffer.FindSet() then
+            repeat
+                if Evaluate(Index, TempReportParametersBuffer.Value) then
+                    if TempBlobList.Exists(Index) then begin
+                        TempBlobList.Get(Index, TempBlob);
+                        TempBlob.CreateInStream(ParametersInStream, TextEncoding::UTF8);
+                        Parameters := TypeHelper.ReadAsTextWithSeparator(ParametersInStream, TypeHelper.LFSeparator());
+                        if LimitRequestParametersToBatch(Parameters) then begin
+                            Clear(LimitedTempBlob);
+                            LimitedTempBlob.CreateOutStream(ParametersOutStream, TextEncoding::UTF8);
+                            ParametersOutStream.WriteText(Parameters);
+                            TempBlobList.Set(Index, LimitedTempBlob);
+                        end;
+                    end;
+            until TempReportParametersBuffer.Next() = 0;
+    end;
+
+    // Reports without a "Gen. Journal Line" data item, such as a custom remittance report, are left unchanged.
+    procedure LimitRequestParametersToBatch(var Parameters: Text): Boolean
+    var
+        GenJournalLine: Record "Gen. Journal Line";
+        ParametersXml: XmlDocument;
+        DataItemElement: XmlElement;
+        View: Text;
+    begin
+        if Parameters = '' then
+            exit(false);
+        if not XmlDocument.ReadFrom(Parameters, ParametersXml) then
+            exit(false);
+        if not FindJournalLineDataItem(ParametersXml, false, DataItemElement) then
+            exit(false);
+
+        View := DataItemElement.InnerText();
+        if View <> '' then
+            GenJournalLine.SetView(View);
+        GenJournalLine.SetRange("Journal Template Name", JnlTemplateName);
+        GenJournalLine.SetRange("Journal Batch Name", JnlBatchName);
+        DataItemElement.RemoveNodes();
+        DataItemElement.Add(XmlText.Create(GenJournalLine.GetView(false)));
+
+        WriteSingleLine(ParametersXml, Parameters);
+        exit(true);
+    end;
+
+    // When the request page filters leave none of the batch's lines, Custom Layout Reporting runs no report and only
+    // says "No data exists for the specified report filters", which does not tell the user what to change.
+    procedure CheckLinesLeftToReport(var ReportDataRecordRef: RecordRef)
+    begin
+        if AnyReportRun then
+            exit;
+        if ReportDataRecordRef.Number() <> Database::"Gen. Journal Line" then
+            exit;
+        if ReportDataRecordRef.IsEmpty() then
+            Error(NothingLeftToReportErr, JnlBatchName);
+    end;
+
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Custom Layout Reporting", 'OnBeforeThrowProcessReportError', '', false, false)]
+    local procedure ExplainNothingLeftToReport(var ReportDataRecordRef: RecordRef)
+    begin
+        CheckLinesLeftToReport(ReportDataRecordRef);
     end;
 
     // Every request page has been run before the first report, so all reports are checked before anything is sent.
@@ -260,13 +345,7 @@ codeunit 81104 "BAACH Remittance Run Scope"
     var
         GenJournalLine: Record "Gen. Journal Line";
         ParametersXml: XmlDocument;
-        RootElement: XmlElement;
-        DataItemsElement: XmlElement;
         DataItemElement: XmlElement;
-        DataItemsNode: XmlNode;
-        DataItemNode: XmlNode;
-        NameAttribute: XmlAttribute;
-        Found: Boolean;
     begin
         if SavedParameters = '' then begin
             if not CreateIfMissing then
@@ -275,39 +354,60 @@ codeunit 81104 "BAACH Remittance Run Scope"
         end else
             if not XmlDocument.ReadFrom(SavedParameters, ParametersXml) then
                 exit;
-        if not ParametersXml.GetRoot(RootElement) then
+        if not FindJournalLineDataItem(ParametersXml, CreateIfMissing, DataItemElement) then
             exit;
 
-        if RootElement.SelectSingleNode(DataItemsTok, DataItemsNode) then
-            DataItemsElement := DataItemsNode.AsXmlElement()
-        else begin
-            if not CreateIfMissing then
-                exit;
-            DataItemsElement := XmlElement.Create(DataItemsTok);
-            RootElement.Add(DataItemsElement);
-        end;
-
-        foreach DataItemNode in DataItemsElement.GetChildElements(DataItemTok) do
-            if not Found then
-                if DataItemNode.AsXmlElement().Attributes().Get(NameTok, NameAttribute) then
-                    if NameAttribute.Value() = GenJournalLine.TableName() then begin
-                        DataItemElement := DataItemNode.AsXmlElement();
-                        DataItemElement.RemoveNodes();
-                        Found := true;
-                    end;
-        if not Found then begin
-            if not CreateIfMissing then
-                exit;
-            DataItemElement := XmlElement.Create(DataItemTok);
-            DataItemElement.SetAttribute(NameTok, GenJournalLine.TableName());
-            DataItemsElement.Add(DataItemElement);
-        end;
-
+        DataItemElement.RemoveNodes();
         GenJournalLine.SetRange("Journal Template Name", JnlTemplateName);
         GenJournalLine.SetRange("Journal Batch Name", JnlBatchName);
         DataItemElement.Add(XmlText.Create(GenJournalLine.GetView(false)));
 
         ParametersXml.WriteTo(SavedParameters);
+    end;
+
+    local procedure FindJournalLineDataItem(ParametersXml: XmlDocument; CreateIfMissing: Boolean; var DataItemElement: XmlElement): Boolean
+    var
+        GenJournalLine: Record "Gen. Journal Line";
+        RootElement: XmlElement;
+        DataItemsElement: XmlElement;
+        DataItemsNode: XmlNode;
+        DataItemNode: XmlNode;
+        NameAttribute: XmlAttribute;
+    begin
+        if not ParametersXml.GetRoot(RootElement) then
+            exit(false);
+
+        if RootElement.SelectSingleNode(DataItemsTok, DataItemsNode) then
+            DataItemsElement := DataItemsNode.AsXmlElement()
+        else begin
+            if not CreateIfMissing then
+                exit(false);
+            DataItemsElement := XmlElement.Create(DataItemsTok);
+            RootElement.Add(DataItemsElement);
+        end;
+
+        foreach DataItemNode in DataItemsElement.GetChildElements(DataItemTok) do
+            if DataItemNode.AsXmlElement().Attributes().Get(NameTok, NameAttribute) then
+                if NameAttribute.Value() = GenJournalLine.TableName() then begin
+                    DataItemElement := DataItemNode.AsXmlElement();
+                    exit(true);
+                end;
+
+        if not CreateIfMissing then
+            exit(false);
+        DataItemElement := XmlElement.Create(DataItemTok);
+        DataItemElement.SetAttribute(NameTok, GenJournalLine.TableName());
+        DataItemsElement.Add(DataItemElement);
+        exit(true);
+    end;
+
+    // Custom Layout Reporting reads the stored parameters back with a single InStream.ReadText, which stops at a line break.
+    local procedure WriteSingleLine(ParametersXml: XmlDocument; var Parameters: Text)
+    var
+        WriteOptions: XmlWriteOptions;
+    begin
+        WriteOptions.PreserveWhitespace := true;
+        ParametersXml.WriteTo(WriteOptions, Parameters);
     end;
 
     local procedure CreateParametersXml(ReportId: Integer; var ParametersXml: XmlDocument)
